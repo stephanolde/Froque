@@ -3,7 +3,7 @@ import time
 import pprint
 
 # Initialize an ArduinoBoard instance.
-arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=9600)
+arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM1", baud_rate=9600)
 
 # List of commands and their associated argument formats. These must be in the
 # same order as in the sketch.
@@ -21,6 +21,7 @@ c = PyCmdMessenger.CmdMessenger(arduino, commands)
 
 c.send("sensor_amount")
 string, sensorAmount, timeStamp = c.receive()
+print(sensorAmount)
 
 #Initial setup with the data given from the arduino
 #Puts all the data into a dictionary (HashMap) with the keys (x, y) and value z
