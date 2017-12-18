@@ -1,5 +1,6 @@
 import PyCmdMessenger
 import time
+import pprint
 
 # Initialize an ArduinoBoard instance.
 arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=9600)
@@ -40,6 +41,6 @@ while True:
         x, y, z = data
         my_dictionary[x, y] = z
 	
-    print(my_dictionary)
+    pprint.pprint(my_dictionary)
     print("=======================================================================")
-    time.sleep(5)
+    time.sleep(2)
