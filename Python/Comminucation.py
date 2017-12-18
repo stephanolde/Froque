@@ -12,23 +12,38 @@ arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=9600)
 
 # List of commands and their associated argument formats. These must be in the
 # same order as in the sketch.
-commands = [["setup_data", ""],
+commands = [["sensor_amount", ""],
+            ["my_sensor_amount", "i"],
+            ["setup_data", ""],
             ["my_data_is", "sss"],
+            ["update_data", ""],
+            ["my_value_is", "sss"],
             ["error", "s"]]
 
 # Initialize the messenger
 c = PyCmdMessenger.CmdMessenger(arduino, commands)
 
-# Send
-# Receive. Should give ["my_data_is",[String(Data)],TIME_RECIEVED]
+c.send("sensor_amount")
+string, sensorAmount, timeStamp = c.receive()
 
+#Initial setup with the data given from the arduino
+c.send("setup_data")
+for i in range(0, sensorAmount[0]):
+    msg = c.receive()
+    string, data, timeStamp = msg
+    x, y, z = data
+    print(x, y, z)
+    
+
+# Continuously asks for data from the Arduino
 while True:
-	c.send("setup_data")
+    c.send("update_data")
+    for i in range(0, 20):
+        msg = c.receive()
+        string, data, timeStamp = msg
+        x, y, z = data
+        #print(x, y, z)
 	
-	for i in range(0, 20):
-            msg = c.receive()
-            print(msg)
-	
-	print("=================================================")
-	time.sleep(5)
+    #print("=======================================================================")
+    time.sleep(5)
 	
