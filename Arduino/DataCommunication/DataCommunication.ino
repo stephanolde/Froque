@@ -7,7 +7,7 @@
 
 int numSens = 20;
 // Location x, Location y, Distance z.
-int sensLoc [numSens][2][500] = {
+int sensLoc [numSens][3] = {
 	{0, 1, 0}, {0, 2, 0}, {1, 0, 0}, {1, 2, 0},
 	{2, 1, 0}, {2, 3, 0}, {3, 0, 0}, {3, 2, 0},
 	{4, 1, 0}, {4, 3, 0}, {5, 0, 0}, {5, 2, 0},
