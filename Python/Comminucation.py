@@ -22,23 +22,24 @@ c.send("sensor_amount")
 string, sensorAmount, timeStamp = c.receive()
 
 #Initial setup with the data given from the arduino
+#Puts all the data into a dictionary (HashMap) with the keys (x, y) and value z
 c.send("setup_data")
 for i in range(0, sensorAmount[0]):
-	msg = c.receive()
-	string, data, timeStamp = msg
-	x, y, z = data
-	my_dictionary[x, y] = z
-	print(x, y, z)
-    
+    msg = c.receive()
+    string, data, timeStamp = msg
+    x, y, z = data
+    my_dictionary[x, y] = z    
 
 # Continuously asks for data from the Arduino
+# And update the dictionary accordingly
 while True:
     c.send("update_data")
     for i in range(0, sensorAmount[0]):
         msg = c.receive()
         string, data, timeStamp = msg
         x, y, z = data
-        #print(x, y, z)
+        my_dictionary[x, y] = z
 	
-    #print("=======================================================================")
+    print(my_dictionary)
+    print("=======================================================================")
     time.sleep(5)
