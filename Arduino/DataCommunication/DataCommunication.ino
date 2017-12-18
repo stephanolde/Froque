@@ -5,12 +5,14 @@
 
 #include "CmdMessenger.h"
 
+int numSens = 20;
+int sensLoc [numSens][2] = {{0,1},{0,2},{1,0},{1,2},{2,1},{2,3},{3,0},{3,2},{4,1},{4,3},{5,0},{5,2},{6,1},{6,3},{7,2},{8,0},{8,1},{9,2},{9,3},{10,1}};
+String sensLocString = String(sensLoc);
+
 /* Define available CmdMessenger commands */
 enum {
-    who_are_you,
-    my_name_is,
-    sum_two_ints,
-    sum_is,
+    setup_data,
+    my_data_is,
     error,
 };
 
@@ -21,32 +23,18 @@ CmdMessenger c = CmdMessenger(Serial,',',';','/');
 /* Create callback functions to deal with incoming messages */
 
 /* callback */
-void on_who_are_you(void){
-    c.sendCmd(my_name_is,"Bob");
+void on_setup_data(void) {
+    c.sendCmd(my_data_is, sensLocString);
 }
 
 /* callback */
-void on_sum_two_ints(void){
-   
-    /* Grab two integers */
-    int value1 = c.readBinArg<int>();
-    int value2 = c.readBinArg<int>();
-
-    /* Send result back */ 
-    c.sendBinCmd(sum_is,value1 + value2);
-
-}
-
-/* callback */
-void on_unknown_command(void){
+void on_unknown_command(void) {
     c.sendCmd(error,"Command without callback.");
 }
 
 /* Attach callbacks for CmdMessenger commands */
-void attach_callbacks(void) { 
-  
-    c.attach(who_are_you,on_who_are_you);
-    c.attach(sum_two_ints,on_sum_two_ints);
+void attach_callbacks(void) {  
+    c.attach(setup_data, on_setup_data);
     c.attach(on_unknown_command);
 }
 
