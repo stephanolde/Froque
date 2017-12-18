@@ -6,7 +6,15 @@
 #include "CmdMessenger.h"
 
 int numSens = 20;
-int sensLoc [numSens][2] = {{0,1},{0,2},{1,0},{1,2},{2,1},{2,3},{3,0},{3,2},{4,1},{4,3},{5,0},{5,2},{6,1},{6,3},{7,2},{8,0},{8,1},{9,2},{9,3},{10,1}};
+// Location x, Location y, Distance z.
+int sensLoc [numSens][2][500] = {
+	{0, 1, 0}, {0, 2, 0}, {1, 0, 0}, {1, 2, 0},
+	{2, 1, 0}, {2, 3, 0}, {3, 0, 0}, {3, 2, 0},
+	{4, 1, 0}, {4, 3, 0}, {5, 0, 0}, {5, 2, 0},
+	{6, 1, 0}, {6, 3, 0}, {7, 2, 0}, {8, 0, 0},
+	{8, 1, 0}, {9, 2, 0}, {9, 3, 0}, {10, 1, 0}
+};
+
 String sensLocString = String(sensLoc);
 
 /* Define available CmdMessenger commands */

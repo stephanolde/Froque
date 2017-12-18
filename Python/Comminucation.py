@@ -25,3 +25,12 @@ c.send("setup_data")
 # Receive. Should give ["my_data_is",[String(Data)],TIME_RECIEVED]
 msg = c.receive()
 print(msg)
+
+while true:
+	c.send("sensor_data")
+	time.sleep(5)
+	
+	msg = c.receive()
+	print(msg)
+	
+	time.sleep(5)
