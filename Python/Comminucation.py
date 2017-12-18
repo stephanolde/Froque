@@ -1,13 +1,7 @@
-# ------------------------------------------------------------------------------
-# Python program using the library to interface with the arduino sketch above.
-# ------------------------------------------------------------------------------
-
 import PyCmdMessenger
 import time
 
-# Initialize an ArduinoBoard instance.  This is where you specify baud rate and
-# serial timeout.  If you are using a non ATmega328 board, you might also need
-# to set the data sizes (bytes for integers, longs, floats, and doubles).  
+# Initialize an ArduinoBoard instance.
 arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=9600)
 
 # List of commands and their associated argument formats. These must be in the
@@ -21,6 +15,7 @@ commands = [["sensor_amount", ""],
             ["error", "s"]]
 
 # Initialize the messenger
+my_dictionary = {}
 c = PyCmdMessenger.CmdMessenger(arduino, commands)
 
 c.send("sensor_amount")
@@ -29,16 +24,17 @@ string, sensorAmount, timeStamp = c.receive()
 #Initial setup with the data given from the arduino
 c.send("setup_data")
 for i in range(0, sensorAmount[0]):
-    msg = c.receive()
-    string, data, timeStamp = msg
-    x, y, z = data
-    print(x, y, z)
+	msg = c.receive()
+	string, data, timeStamp = msg
+	x, y, z = data
+	my_dictionary[x, y] = z
+	print(x, y, z)
     
 
 # Continuously asks for data from the Arduino
 while True:
     c.send("update_data")
-    for i in range(0, 20):
+    for i in range(0, sensorAmount[0]):
         msg = c.receive()
         string, data, timeStamp = msg
         x, y, z = data
@@ -46,4 +42,3 @@ while True:
 	
     #print("=======================================================================")
     time.sleep(5)
-	
