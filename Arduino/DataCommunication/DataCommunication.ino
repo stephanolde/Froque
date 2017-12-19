@@ -2,7 +2,7 @@
 #include "Thread.h"
 #include "ThreadController.h"
 
-const int numSens = 1;
+const int numSens = 5;
 // Location x, Location y, Distance z.
 /*
 int sensLoc [numSens][3] = {
@@ -13,7 +13,10 @@ int sensLoc [numSens][3] = {
   {8, 1, 0}, {9, 2, 0}, {9, 3, 0}, {10, 1, 0}
 };
 */
-int sensLoc [numSens][3] = {{0, 1, 0}};
+int sensLoc [numSens][3] = {
+  {0, 0, 0}, {0, 1, 0}, {1, 0, 0},
+  {1, 1, 0}, {2, 1, 0}
+};
 
 struct sensor{
   byte trigPin;
