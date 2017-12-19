@@ -1,8 +1,3 @@
-/* -----------------------------------------------------------------------------
-   Example .ino file for arduino, compiled with CmdMessenger.h and
-   CmdMessenger.cpp in the sketch directory.
-  ----------------------------------------------------------------------------*/
-
 #include "CmdMessenger.h"
 #include "Thread.h"
 #include "ThreadController.h"
