@@ -1,6 +1,7 @@
 #include "CmdMessenger.h"
 #include "Thread.h"
 #include "ThreadController.h"
+#include "Hashmap.h"
 
 int numSens = 0;
 
@@ -19,6 +20,8 @@ CmdMessenger c = CmdMessenger(Serial, ',', ';', '/');
 /* callback */
 void on_sensor_amount(void) {
   numSens = c.readBinArg<int>();
+  HashType<(int, int), int> hashRawArray[numSens];
+  HashMap<(int, int), int> hashMap = HashMap<(int, int), int>(hashRawArray, numSens);
 }
 
 /* callback */
