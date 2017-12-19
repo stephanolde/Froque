@@ -9,8 +9,6 @@ enum {
   my_sensor_amount,
   build_to_arduino,
   data_to_arduino,
-  test,
-  test2,
   error,
 };
 
@@ -21,7 +19,6 @@ CmdMessenger c = CmdMessenger(Serial, ',', ';', '/');
 /* callback */
 void on_sensor_amount(void) {
   numSens = c.readBinArg<int>();
-  c.sendBinCmd(test, numSens);
 }
 
 /* callback */
@@ -29,12 +26,6 @@ void on_build_to_arduino(void) {
   int x = c.readBinArg<int>();
   int y = c.readBinArg<int>();
   int z = c.readBinArg<int>();
-  //c.sendBinCmd(test, x);
-  c.sendCmdStart(test2);
-  c.sendCmdBinArg(x);
-  c.sendCmdBinArg(y);
-  c.sendCmdBinArg(z);
-  c.sendCmdEnd();
 }
 
 /* callback */
@@ -42,12 +33,6 @@ void on_data_to_arduino(void) {
   int x = c.readBinArg<int>();
   int y = c.readBinArg<int>();
   int z = c.readBinArg<int>();
-  //c.sendBinCmd(test, x);
-  c.sendCmdStart(test2);
-  c.sendCmdBinArg(x);
-  c.sendCmdBinArg(y);
-  c.sendCmdBinArg(z);
-  c.sendCmdEnd();
 }
 
 /* callback */
