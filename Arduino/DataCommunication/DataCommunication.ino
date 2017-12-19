@@ -159,7 +159,7 @@ int US_dist(int tPin, int ePin) {
   dist = duration / 2 / 29;     // Calculate the disance in cm
   
   if (dist > distThreshold) {
-    dist = -1;
+    dist = 0;
   }
     
   return dist;

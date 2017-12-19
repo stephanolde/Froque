@@ -1,14 +1,14 @@
 #include "CmdMessenger.h"
 #include "Thread.h"
 #include "ThreadController.h"
-#include "ChainableLED.h"
+#include "neo"
 
 
 const int numSens = 5;
 int location = 0;
 int sensLoc[numSens][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
-//const int numLeds = 5;
-//ChainableLED leds(7, 8, numLeds);
+const int numLeds = 5;
+ChainableLED leds(7, 8, numLeds);
 
 
 /* Define available CmdMessenger commands */
@@ -48,6 +48,7 @@ void on_data_to_arduino(void) {
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
+  leds.setColorRGB(location, sensLoc[location][2] * 4, sensLoc[location][2] * 4, sensLoc[location][2] * 4);
   location++;
 }
 
@@ -67,6 +68,11 @@ void attach_callbacks(void) {
 void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
+  leds.init();
+  
+  for (int i = 0; i < numLeds; i++) {
+    leds.setColorRGB(i, 0, 0, 0);
+  }
 }
 
 void loop() {

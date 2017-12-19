@@ -3,9 +3,9 @@ import time
 import pprint
 
 # Arduino containing all the input sensors.
-arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM2", baud_rate=9600)
+arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM3", baud_rate=9600)
 # Arduino containing all the output.
-arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=19200)
+arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyACM2", baud_rate=19200)
 
 # List of commands and their associated argument formats. These must be in the
 # same order as in the sketch.
@@ -64,4 +64,4 @@ while True:
 	
     pprint.pprint(my_dictionary)
     print("=======================================================================")
-    time.sleep(2)
+    #time.sleep(0.1)
