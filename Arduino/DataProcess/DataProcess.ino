@@ -2,13 +2,15 @@
 #include "Thread.h"
 #include "ThreadController.h"
 
-const int numSens = 1;
+int numSens = 0;
 
 /* Define available CmdMessenger commands */
 enum {
-  sensor_amount,
+  my_sensor_amount,
+  build_to_arduino,
   data_to_arduino,
   test,
+  test2,
   error,
 };
 
@@ -23,10 +25,29 @@ void on_sensor_amount(void) {
 }
 
 /* callback */
+void on_build_to_arduino(void) {
+  int x = c.readBinArg<int>();
+  int y = c.readBinArg<int>();
+  int z = c.readBinArg<int>();
+  //c.sendBinCmd(test, x);
+  c.sendCmdStart(test2);
+  c.sendCmdBinArg(x);
+  c.sendCmdBinArg(y);
+  c.sendCmdBinArg(z);
+  c.sendCmdEnd();
+}
+
+/* callback */
 void on_data_to_arduino(void) {
-	int x = c.readBinArg<int>();
-	int y = c.readBinArg<int>();
-	int z = c.readBinArg<int>();
+  int x = c.readBinArg<int>();
+  int y = c.readBinArg<int>();
+  int z = c.readBinArg<int>();
+  //c.sendBinCmd(test, x);
+  c.sendCmdStart(test2);
+  c.sendCmdBinArg(x);
+  c.sendCmdBinArg(y);
+  c.sendCmdBinArg(z);
+  c.sendCmdEnd();
 }
 
 /* callback */
@@ -36,15 +57,18 @@ void on_unknown_command(void) {
 
 /* Attach callbacks for CmdMessenger commands */
 void attach_callbacks(void) {
-  c.attach(sensor_amount, on_sensor_amount);
+  c.attach(my_sensor_amount, on_sensor_amount);
+  c.attach(build_to_arduino, on_build_to_arduino);
   c.attach(data_to_arduino, on_data_to_arduino);
   c.attach(on_unknown_command);
 }
 
 void setup() {
   Serial.begin(BAUD_RATE);
+  attach_callbacks();
 }
 
 void loop() {
-	
+  c.feedinSerialData();
 }
+
