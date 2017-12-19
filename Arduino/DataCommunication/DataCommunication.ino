@@ -6,27 +6,38 @@ const int numSens = 5;
 // Location x, Location y, Distance z.
 /*
 int sensLoc [numSens][3] = {
-  {0, 1, 0}, {0, 2, 0}, {1, 0, 0}, {1, 2, 0},
-  {2, 1, 0}, {2, 3, 0}, {3, 0, 0}, {3, 2, 0},
-  {4, 1, 0}, {4, 3, 0}, {5, 0, 0}, {5, 2, 0},
-  {6, 1, 0}, {6, 3, 0}, {7, 2, 0}, {8, 0, 0},
-  {8, 1, 0}, {9, 2, 0}, {9, 3, 0}, {10, 1, 0}
-};
-*/
+ {0, 1, 0}, {0, 2, 0}, {1, 0, 0}, {1, 2, 0},
+ {2, 1, 0}, {2, 3, 0}, {3, 0, 0}, {3, 2, 0},
+ {4, 1, 0}, {4, 3, 0}, {5, 0, 0}, {5, 2, 0},
+ {6, 1, 0}, {6, 3, 0}, {7, 2, 0}, {8, 0, 0},
+ {8, 1, 0}, {9, 2, 0}, {9, 3, 0}, {10, 1, 0}
+ };
+ */
 int sensLoc [numSens][3] = {
-  {0, 0, 0}, {0, 1, 0}, {1, 0, 0},
-  {1, 1, 0}, {2, 1, 0}
+  {
+    0, 0, 0  }
+  , {
+    0, 1, 0  }
+  , {
+    1, 0, 0  }
+  , {
+    1, 1, 0  }
+  , {
+    2, 1, 0  }
 };
+
+int sensZero[numSens];
 
 struct sensor{
   byte trigPin;
   byte echoPin;
-} sensPins[numSens];
+} 
+sensPins[numSens];
 
 const bool sens4Pin = false;    // if only 3 pin sensors are used set to false, with only 4 pin sensors set to true
 
-int distThreshold = 300;
-int measurementDelay = 80;
+int distThreshold = 150;
+int measurementDelay = 50;
 
 /* setting up the sensor Thread */
 ThreadController threadController = ThreadController();
@@ -93,19 +104,37 @@ void attach_callbacks(void) {
 
 
 void sensorCallback() {
+
+  int sensOld;
   for (byte i = 0; i < numSens; i++) {
-    sensLoc[i][2] = US_dist(sensPins[i].trigPin, sensPins[i].echoPin);    
+    sensOld = sensLoc[i][2];
+    sensLoc[i][2] = US_dist(sensPins[i].trigPin, sensPins[i].echoPin);
+
+    if (sensLoc[i][2] == 0){
+      if (sensZero[i] < 3){
+        sensZero[i]++;
+        sensLoc[i][2] = sensOld;
+      }
+      else
+        sensZero[i] = 0;
+    }
+
+    else
+      sensZero[i] = 0;
   }
 }
 
 void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
-  
+
   sensorThread -> onRun(sensorCallback);
   sensorThread -> setInterval(measurementDelay);
 
   threadController.add(sensorThread);
+
+  for (byte i = 0; i < numSens; i++)
+    sensZero[i] = 0;
 
   setupSensors();
 }
@@ -123,7 +152,8 @@ void setupSensors() {
       sensPins[i].echoPin = 2 * i + 55;
       pinMode(sensPins[i].trigPin, OUTPUT);
       pinMode(sensPins[i].echoPin, INPUT);
-    } else {
+    } 
+    else {
       sensPins[i].trigPin = 2 * i + 14;        // Allocating pins 30 to 53
       sensPins[i].echoPin = 2 * i + 15;
       pinMode(sensPins[i].trigPin, OUTPUT);
@@ -138,7 +168,7 @@ void setupSensors() {
 int US_dist(int tPin, int ePin) {
   // When using a 3 pin distance sensor set echoPin = 0
   long duration, dist;
-  
+
   if (ePin == 0) {                    //3 pin distance sensor
     pinMode(tPin, OUTPUT);
     digitalWrite(tPin, LOW);          // Check that the output is low
@@ -148,7 +178,8 @@ int US_dist(int tPin, int ePin) {
     digitalWrite(tPin, LOW);          // End pulse
     pinMode(tPin, INPUT);
     duration = pulseIn(tPin, HIGH);   // Wait for a pulse to return
-  } else {                              // 4 pin distance sensor
+  } 
+  else {                              // 4 pin distance sensor
     digitalWrite(tPin, LOW);
     delayMicroseconds(2);
     digitalWrite(tPin, HIGH);         // Begin pulse
@@ -157,11 +188,14 @@ int US_dist(int tPin, int ePin) {
     duration = pulseIn(ePin, HIGH);   // Wait for a pulse to return
   }
   dist = duration / 2 / 29;     // Calculate the disance in cm
-  
+
   if (dist > distThreshold) {
     dist = 0;
   }
-    
+
   return dist;
 }
+
+
+
 

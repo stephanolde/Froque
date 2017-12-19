@@ -1,14 +1,17 @@
 #include "CmdMessenger.h"
 #include "Thread.h"
 #include "ThreadController.h"
-#include "neo"
+#include "Adafruit_NeoPixel.h"
 
 
 const int numSens = 5;
 int location = 0;
 int sensLoc[numSens][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
-const int numLeds = 5;
-ChainableLED leds(7, 8, numLeds);
+
+const int numLeds = 39;
+const int ledPin = 8;
+
+Adafruit_NeoPixel leds = Adafruit_NeoPixel(numLeds, ledPin, NEO_GRB + NEO_KHZ800);
 
 
 /* Define available CmdMessenger commands */
@@ -42,13 +45,26 @@ void on_build_to_arduino(void) {
 
 /* callback */
 void on_data_to_arduino(void) {
+  int intencity = 0;
+  
   if (location == 5) {
     location = 0;
   }
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
-  leds.setColorRGB(location, sensLoc[location][2] * 4, sensLoc[location][2] * 4, sensLoc[location][2] * 4);
+  
+  if (sensLoc[location][2] < 35)
+    intencity = 0;
+  else if (sensLoc[location][2] > 140)
+    intencity = 0;
+  else
+    intencity = map(sensLoc[location][2], 35, 150, 0, 255);
+  
+  for( int i = location * numLeds/numSens; i < (location + 1)* numLeds/numSens; i++)
+    leds.setPixelColor(i, leds.Color(intencity, intencity, intencity));
+  leds.show();
+  
   location++;
 }
 
@@ -68,11 +84,9 @@ void attach_callbacks(void) {
 void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
-  leds.init();
-  
-  for (int i = 0; i < numLeds; i++) {
-    leds.setColorRGB(i, 0, 0, 0);
-  }
+
+  leds.begin();
+  leds.show();
 }
 
 void loop() {
