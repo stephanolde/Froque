@@ -1,7 +1,7 @@
 #include "CmdMessenger.h"
 #include "Thread.h"
 #include "ThreadController.h"
-#include <FastLED.h>
+#include "FastLED.h"
 
 
 const int numSens = 5;
