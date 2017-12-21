@@ -1,14 +1,18 @@
 #include "CmdMessenger.h"
 #include "Thread.h"
 #include "ThreadController.h"
-#include "neo"
+#include <FastLED.h>
 
 
 const int numSens = 5;
 int location = 0;
 int sensLoc[numSens][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
 const int numLeds = 5;
-ChainableLED leds(7, 8, numLeds);
+CRGB leds[numLeds];
+
+#define DATA_PIN 9
+#define CLOCK_PIN 7
+
 
 
 /* Define available CmdMessenger commands */
@@ -42,13 +46,15 @@ void on_build_to_arduino(void) {
 
 /* callback */
 void on_data_to_arduino(void) {
-  if (location == 5) {
+  if (location == numSens) {
     location = 0;
   }
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
-  leds.setColorRGB(location, sensLoc[location][2] * 4, sensLoc[location][2] * 4, sensLoc[location][2] * 4);
+  
+  setColours();
+  
   location++;
 }
 
@@ -68,14 +74,55 @@ void attach_callbacks(void) {
 void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
-  leds.init();
   
-  for (int i = 0; i < numLeds; i++) {
-    leds.setColorRGB(i, 0, 0, 0);
-  }
+  //FastLED.addLeds<P9813, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);
+
 }
 
 void loop() {
   c.feedinSerialData();
+}
+
+void setColours(){
+  
+  switch (sensors[location].state[0]) {
+      case 0:
+        colourChange(location, 0, 0, 0);
+        break;
+      case 1:
+        colourChange(location, 32, 255, 199);
+        break;
+      case 2:
+        colourChange(location, 137, 255, 255);
+        break;
+    }
+  
+  
+  
+}
+
+void colourChange( int sensIndex, int R, int G, int B) {
+
+  int targetColour[3] = {R, G, B};
+
+  leds[sensIndex] = CHSV(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
+  if (ledColour[sensIndex][0] == targetColour[0] && ledColour[sensIndex][1] == targetColour[1] && ledColour[sensIndex][2] == targetColour[2])
+    return;
+
+  for (byte i = 0; i < 3; i++) {
+
+    if (ledColour[sensIndex][i] <= targetColour[i] + 5 && ledColour[sensIndex][i] >= targetColour[i] - 5)
+      ledColour[sensIndex][i] = targetColour[i];
+    else if (ledColour[sensIndex][i] < targetColour[i] - 5)
+      ledColour[sensIndex][i] += 5;
+    else
+      ledColour[sensIndex][i] -= 5;
+
+
+  }
+
+  leds[sensIndex] = CHSV(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
+  
 }
 
