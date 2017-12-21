@@ -3,6 +3,11 @@
 #include "ThreadController.h"
 
 const int numSens = 5;
+const int distThreshold = 300;
+const int measurementDelay = 50;
+const int regSize = 40;
+const int detectRange[2] = {1, 50};
+
 // Location x, Location y, Distance z.
 /*
 int sensLoc [numSens][3] = {
@@ -21,12 +26,13 @@ int sensLoc [numSens][3] = {
 struct sensor{
   byte trigPin;
   byte echoPin;
+  bool shiftReg[regSize] = {0};
+  byte count = 0;
+  byte state = 0;
 } sensPins[numSens];
 
 const bool sens4Pin = false;    // if only 3 pin sensors are used set to false, with only 4 pin sensors set to true
 
-int distThreshold = 300;
-int measurementDelay = 80;
 
 /* setting up the sensor Thread */
 ThreadController threadController = ThreadController();
@@ -93,8 +99,35 @@ void attach_callbacks(void) {
 
 
 void sensorCallback() {
+  
+  int newReg;
+
   for (byte i = 0; i < numSens; i++) {
-    sensLoc[i][2] = US_dist(sensPins[i].trigPin, sensPins[i].echoPin);    
+    sensors[i].distance = US_dist(sensors[i].pins[0], sensors[i].pins[1]);
+
+    if (sensors[i].distance > detectRange[0] && sensors[i].distance < detectRange[1]) {
+      newReg = true;
+      sensors[i].count++;
+    }
+    else
+      newReg = false;
+
+    if (sensors[i].shiftReg[regSize - 1] == true)
+      sensors[i].count--;
+
+    for (byte j = regSize - 1; j > 0; j--) {
+      sensors[i].shiftReg[j] = sensors[i].shiftReg[j - 1];
+    }
+    sensors[i].shiftReg[0] = newReg;
+
+    if (sensors[i].count >= 10 && sensors[i].count < 41)
+      sensors[i].state = 1;
+    else if (sensors[i].count >= 41 && sensors[i].count <= 41)
+      sensors[i].state = 2;
+    else
+      sensors[i].state = 0;
+    
+    sensloc[i][2] = sensors[i].state;
   }
 }
 
