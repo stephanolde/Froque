@@ -1,16 +1,17 @@
 #include "CmdMessenger.h"
 #include "Thread.h"
 #include "ThreadController.h"
-#include "FastLED.h"
+#include <FastLED.h>
 
 
 const int numSens = 5;
 int location = 0;
-int sensLoc[numSens][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+int sensLoc[numSens][3] = {0};
+int ledColour[numSens][3] = {0};
 const int numLeds = 5;
 CRGB leds[numLeds];
 
-#define DATA_PIN 9
+#define DATA_PIN 6
 #define CLOCK_PIN 7
 
 
@@ -53,7 +54,6 @@ void on_data_to_arduino(void) {
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
   
-  setColours();
   
   location++;
 }
@@ -75,30 +75,34 @@ void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
   
-  //FastLED.addLeds<P9813, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
-  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);
+  //FastLED.addLeds<P9813, DATA_PIN, CLOCK_PIN, RGB>(leds, numLeds);
+  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, numLeds);
 
 }
 
 void loop() {
   c.feedinSerialData();
+  
+  setColours();
+  FastLED.show();
 }
 
 void setColours(){
+
+  for(byte i = 0; i < numSens; i++){
   
-  switch (sensors[location].state[0]) {
+  switch (sensLoc[i][2]) {
       case 0:
-        colourChange(location, 0, 0, 0);
+        colourChange(i, 0, 0, 0);
         break;
       case 1:
-        colourChange(location, 32, 255, 199);
+        colourChange(i, 150, 200, 0);
         break;
       case 2:
-        colourChange(location, 137, 255, 255);
+        colourChange(i, 0, 250, 255);
         break;
     }
-  
-  
+  }  
   
 }
 
@@ -106,23 +110,23 @@ void colourChange( int sensIndex, int R, int G, int B) {
 
   int targetColour[3] = {R, G, B};
 
-  leds[sensIndex] = CHSV(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
+  leds[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
+  
   if (ledColour[sensIndex][0] == targetColour[0] && ledColour[sensIndex][1] == targetColour[1] && ledColour[sensIndex][2] == targetColour[2])
     return;
 
   for (byte i = 0; i < 3; i++) {
 
-    if (ledColour[sensIndex][i] <= targetColour[i] + 5 && ledColour[sensIndex][i] >= targetColour[i] - 5)
-      ledColour[sensIndex][i] = targetColour[i];
-    else if (ledColour[sensIndex][i] < targetColour[i] - 5)
-      ledColour[sensIndex][i] += 5;
+    if (ledColour[sensIndex][i] < targetColour[i])
+      ledColour[sensIndex][i]++;
+    else if (ledColour[sensIndex][i] > targetColour[i])
+      ledColour[sensIndex][i]--;
     else
-      ledColour[sensIndex][i] -= 5;
+      ledColour[sensIndex][i] = targetColour[i];
 
 
   }
 
-  leds[sensIndex] = CHSV(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
+  leds[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
   
 }
-
