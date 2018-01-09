@@ -30,11 +30,9 @@ const int numLeds = 39;
 const int ledPin = 8;
 
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(numLeds, ledPin, NEO_GRB + NEO_KHZ800);
-
+CRGB leds2[numLeds];
 int sensLoc[numSens][3] = {0};
 int ledColour[numSens][3] = {0};
-const int numLeds = 5;
-CRGB leds[numLeds];
 
 #define DATA_PIN 6
 #define CLOCK_PIN 7
@@ -70,6 +68,10 @@ void on_build_to_arduino(void) {
 
 /* callback */
 void on_data_to_arduino(void) {
+  int hue = 0;    
+  int saturation = 255;   
+  int brightness = 125;   
+  int RGB[3];
   if (location == numSens) {
     location = 0;
   }
@@ -113,10 +115,6 @@ void setup() {
 
   leds.begin();
   leds.show();
-  
-  //FastLED.addLeds<P9813, DATA_PIN, CLOCK_PIN, RGB>(leds, numLeds);
-  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, numLeds);
-
 }
 
 void loop() {
@@ -216,23 +214,23 @@ void colourChange( int sensIndex, int R, int G, int B) {
 
   int targetColour[3] = {R, G, B};
 
-  leds[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
+  leds2[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
   
-  if (ledColour[sensIndex][0] == targetColour[0] && ledColour[sensIndex][1] == targetColour[1] && ledColour[sensIndex][2] == targetColour[2])
+  if (ledColour[sensIndex][0] == targetColour[0] && ledColour[sensIndex][1] == targetColour[1] && ledColour[sensIndex][2] == targetColour[2]) {
     return;
-
+  }
+  
   for (byte i = 0; i < 3; i++) {
-
-    if (ledColour[sensIndex][i] < targetColour[i])
+    if (ledColour[sensIndex][i] < targetColour[i]) {
       ledColour[sensIndex][i]++;
-    else if (ledColour[sensIndex][i] > targetColour[i])
+    } else if (ledColour[sensIndex][i] > targetColour[i]) {
       ledColour[sensIndex][i]--;
-    else
+    } else {
       ledColour[sensIndex][i] = targetColour[i];
-
+    }
 
   }
 
-  leds[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
+  leds2[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
   
 }
