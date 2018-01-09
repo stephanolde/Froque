@@ -2,6 +2,7 @@
 #include "Thread.h"
 #include "ThreadController.h"
 #include "Adafruit_NeoPixel.h"
+#include <FastLED.h>
 
 const byte dim_curve[] = {
     0,   1,   1,   2,   2,   2,   2,   2,   2,   3,   3,   3,   3,   3,   3,   3,
@@ -24,13 +25,19 @@ const byte dim_curve[] = {
 
 const int numSens = 5;
 int location = 0;
-int sensLoc[numSens][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
 
 const int numLeds = 39;
 const int ledPin = 8;
 
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(numLeds, ledPin, NEO_GRB + NEO_KHZ800);
 
+int sensLoc[numSens][3] = {0};
+int ledColour[numSens][3] = {0};
+const int numLeds = 5;
+CRGB leds[numLeds];
+
+#define DATA_PIN 6
+#define CLOCK_PIN 7
 
 /* Define available CmdMessenger commands */
 enum {
@@ -63,30 +70,25 @@ void on_build_to_arduino(void) {
 
 /* callback */
 void on_data_to_arduino(void) {
-  
-  int hue = 0;
-  int saturation = 255;
-  int brightness = 125;
-  int RGB[3];
-  
-  if (location == 5) {
+  if (location == numSens) {
     location = 0;
   }
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
   
-  if (sensLoc[location][2] < 35)
+  if (sensLoc[location][2] < 35) {
     brightness = 0;
-  else if (sensLoc[location][2] > 140)
+  } else if (sensLoc[location][2] > 140) {
     brightness = 0;
-  else
+  } else {
     hue = map(sensLoc[location][2], 35, 150, 0, 359);
-  
+  }
   getRGB(hue, saturation, brightness, RGB);
   
-  for(int i = location * numLeds/numSens; i < (location + 1)* numLeds/numSens; i++)
+  for(int i = location * numLeds/numSens; i < (location + 1)* numLeds/numSens; i++) {
     leds.setPixelColor(i, leds.Color(RGB[0], RGB[1], RGB[2]));
+  }
   leds.show();
   
   location++;
@@ -111,10 +113,36 @@ void setup() {
 
   leds.begin();
   leds.show();
+  
+  //FastLED.addLeds<P9813, DATA_PIN, CLOCK_PIN, RGB>(leds, numLeds);
+  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, numLeds);
+
 }
 
 void loop() {
   c.feedinSerialData();
+  
+  setColours();
+  FastLED.show();
+}
+
+void setColours(){
+
+  for(byte i = 0; i < numSens; i++){
+  
+  switch (sensLoc[i][2]) {
+      case 0:
+        colourChange(i, 0, 0, 0);
+        break;
+      case 1:
+        colourChange(i, 150, 200, 0);
+        break;
+      case 2:
+        colourChange(i, 0, 250, 255);
+        break;
+    }
+  }  
+  
 }
 
 void getRGB(int hue, int sat, int val, int colors[3]) { 
@@ -184,3 +212,27 @@ void getRGB(int hue, int sat, int val, int colors[3]) {
   }   
 }
 
+void colourChange( int sensIndex, int R, int G, int B) {
+
+  int targetColour[3] = {R, G, B};
+
+  leds[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
+  
+  if (ledColour[sensIndex][0] == targetColour[0] && ledColour[sensIndex][1] == targetColour[1] && ledColour[sensIndex][2] == targetColour[2])
+    return;
+
+  for (byte i = 0; i < 3; i++) {
+
+    if (ledColour[sensIndex][i] < targetColour[i])
+      ledColour[sensIndex][i]++;
+    else if (ledColour[sensIndex][i] > targetColour[i])
+      ledColour[sensIndex][i]--;
+    else
+      ledColour[sensIndex][i] = targetColour[i];
+
+
+  }
+
+  leds[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
+  
+}
