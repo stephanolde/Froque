@@ -2,7 +2,6 @@
 #include "Thread.h"
 #include "ThreadController.h"
 
-const int numSens = 5;
 const int distThreshold = 300;
 const int measurementDelay = 50;
 const int regSize = 40;
@@ -10,25 +9,18 @@ const int detectRange[2] = {1, 150};
 
 // Location x, Location y, Distance z.
 /*
-int sensLoc [numSens][3] = {
- {0, 1, 0}, {0, 2, 0}, {1, 0, 0}, {1, 2, 0},
- {2, 1, 0}, {2, 3, 0}, {3, 0, 0}, {3, 2, 0},
- {4, 1, 0}, {4, 3, 0}, {5, 0, 0}, {5, 2, 0},
- {6, 1, 0}, {6, 3, 0}, {7, 2, 0}, {8, 0, 0},
- {8, 1, 0}, {9, 2, 0}, {9, 3, 0}, {10, 1, 0}
- };
+const int numSens = 20;
+int sensLoc[numSens][3] = {
+	{0, 4, 0}, {0, 7, 0}, {1, 1, 0}, {1, 7, 0}, {2, 5, 0},
+	{2, 9, 0}, {3, 2, 0}, {3, 7, 0}, {5, 5, 0}, {5, 9, 0},
+	{6, 1, 0}, {6, 7, 0}, {7, 3, 0}, {7, 9, 0}, {8, 6, 0},
+	{9, 3, 0}, {10, 1, 0}, {11, 5, 0}, {11, 9, 0}, {12, 2, 0}
+};
  */
+ 
+const int numSens = 5;
 int sensLoc [numSens][3] = {
-  {
-    0, 0, 0  }
-  , {
-    0, 1, 0  }
-  , {
-    1, 0, 0  }
-  , {
-    1, 1, 0  }
-  , {
-    2, 1, 0  }
+  {0, 0, 0}, {0, 1, 0}, {1, 0, 0}, {1, 1, 0}, {2, 1, 0}
 };
 
 int sensZero[numSens];
