@@ -3,12 +3,18 @@
 #include "ThreadController.h"
 #include "FastLED.h"
 
+DEFINE_GRADIENT_PALETTE( bluefly_gp ) {
+    0,   0,  0,  0,
+   63,   0, 39, 64,
+  191, 175,215,235,
+  255,   0,  0,  0};
+
 #define numIns 42     // 42  for polysens
 #define numWind 10    // max 10 for polysens
 #define numLight 15   // max 15 for polysens
 #define numSound 8    // max 8 for polysens
-#define numLedsInsert 76
-
+#define NUM_HALF 18
+#define numLedsInsert 36
 
 const byte insLoc[numIns][2] = {
   {0, 5}, {0, 7}, {1, 0}, {1, 2}, {1, 5}, {1, 9}, {2, 0},
@@ -19,8 +25,7 @@ const byte insLoc[numIns][2] = {
   {9, 9}, {10, 3}, {10, 4}, {10, 9}, {11, 6}, {11, 8}, {12, 0}
 };
 
-/*  Inserts roster
-
+/*  Inserts roster (stateMap)
     -1   5  -1  15  19  -1  24  -1  30  35  38  -1  -1
     -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  40  -1
      1  -1   9  -1  18  -1  23  -1  29  -1  -1  -1  -1
@@ -34,6 +39,7 @@ const byte insLoc[numIns][2] = {
 */
 
 enum {none, light, wind, sound};
+
 const byte insList[numIns] =
 { sound, sound, sound, sound, sound,
   sound, sound, sound, wind, wind,
@@ -47,7 +53,6 @@ const byte insList[numIns] =
 };
 
 struct insert {
-
   byte type = 0;
   byte loc[2] = {0, 0};
 
@@ -57,12 +62,9 @@ struct insert {
   byte relState = 0;
   long relInterval = 0;
   long relTime = 0;
-
-
 } inserts[numLight + numWind];
 
 CRGB leds[numLight][numLedsInsert];
-
 
 #define numSens 20
 byte sensLoc[numSens][3] = {0};
@@ -169,8 +171,8 @@ void setupInserts() {
 
   for (int i = 0; i < numIns; i++) {
     switch (insList[i]) {
-
       case none :
+	  
       case sound :
         continue;
 
@@ -191,13 +193,11 @@ void setupInserts() {
         pinMode(inserts[i].pin, OUTPUT);
         windCount ++;
         break;
-
     }
   }
 }
 
 void initFastLED() {
-
   FastLED.addLeds<NEOPIXEL, 22>(leds[0], numLedsInsert);
   FastLED.addLeds<NEOPIXEL, 23>(leds[1], numLedsInsert);
   FastLED.addLeds<NEOPIXEL, 24>(leds[2], numLedsInsert);
@@ -213,11 +213,9 @@ void initFastLED() {
   FastLED.addLeds<NEOPIXEL, 34>(leds[12], numLedsInsert);
   FastLED.addLeds<NEOPIXEL, 35>(leds[13], numLedsInsert);
   FastLED.addLeds<NEOPIXEL, 36>(leds[14], numLedsInsert);
-
 }
 
 void runInserts() {
-
   for (int i = 0; i < numLight + numWind; i++) {
     switch (inserts[i].type) {
       case light :
@@ -228,9 +226,7 @@ void runInserts() {
         break;
     }
   }
-
   FastLED.show();
-
 }
 
 void lightInsert(int index) {
@@ -249,14 +245,12 @@ void lightInsert(int index) {
     }
   }
   else {
-
     idleLights(index);
-
   }
 }
 
 
-void colourChange( int index, int R, int G, int B) {
+void colourChange(int index, int R, int G, int B) {
 
   for (byte i = 0; i < numLedsInsert; i++) {
     leds[index][i] = CRGB(R, G, B);
@@ -264,12 +258,75 @@ void colourChange( int index, int R, int G, int B) {
 }
 
 void idleLights(int index) {
-
-
+int x = 0;
+  // This inner loop will go over each led in the current strip, one at a time
+  for (int i = 0; i < numLedsInsert; i++) {
+	for (int x = 0; x < numLight; x++) {
+    if (i < NUM_HALF) {
+      leds[x][i + NUM_HALF] = CRGB::Purple;
+      //leds[x + 1][i + NUM_HALF] = CRGB::Purple;
+    } else {
+      leds[x][i - NUM_HALF] = CRGB::Purple;
+      //leds[x + 1][i - NUM_HALF] = CRGB::Purple;
+    }
+    FastLED.show();
+    leds[x][i] = CRGB::Blue;
+    //leds[x + 1][i] = CRGB::Blue;
+	}
+    delay(100);
+  }
+  for (int i = 0; i < numLedsInsert; i++) {
+	for (int x = 0; x < numLight; x++) {
+    leds[x][i] = CRGB::Blue;
+    if (i < NUM_HALF) {
+      leds[x][i + NUM_HALF] = CRGB::Blue;
+      //leds[x + 1][i + NUM_HALF] = CRGB::Blue;
+    } else {
+      leds[x][i - NUM_HALF] = CRGB::Blue;
+      //leds[x + 1][i - NUM_HALF] = CRGB::Blue;
+    }
+    FastLED.show();
+    leds[x][i] = CRGB::Purple;
+    //leds[x + 1][i] = CRGB::Purple;
+	}
+    delay(100);
+  }
+  for (int i = 0; i < numLedsInsert; i++) {
+	for (int x = 0; x < numLight; x++) {
+    leds[x][i] = CRGB::Green;
+    if (i < NUM_HALF) {
+      leds[x][i + NUM_HALF] = CRGB::Purple;
+      //leds[x + 1][i + NUM_HALF] = CRGB::Purple;
+    } else {
+      leds[x][i - NUM_HALF] = CRGB::Purple;
+      //leds[x + 1][i - NUM_HALF] = CRGB::Purple;
+    }
+    FastLED.show();
+    leds[x][i] = CRGB::Cyan;
+    //leds[x + 1][i] = CRGB::Cyan;
+	}
+    delay(100);
+  }
+  for (int i = 0; i < numLedsInsert; i++) {
+	for (int x = 0; x < numLight; x++) {
+    leds[x][i] = CRGB::Cyan;
+    if (i < NUM_HALF) {
+      leds[x][i + NUM_HALF] = CRGB::Cyan;
+      leds[x + 1][i + NUM_HALF] = CRGB::Cyan;
+    } else {
+      leds[x][i - NUM_HALF] = CRGB::Cyan;
+      leds[x + 1][i - NUM_HALF] = CRGB::Cyan;
+    }
+    FastLED.show();
+    leds[x][i] = CRGB::Purple;
+    leds[x + 1][i] = CRGB::Purple;
+	}
+    delay(100);
+  }
 }
 
-void windInsert( int index) {
-  // Place wind animations in the swich stantements
+void windInsert(int index) {
+  // Place wind animations in the switch statements
 
   if (idle == false) {
     switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
