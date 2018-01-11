@@ -1,6 +1,7 @@
 import PyCmdMessenger
 import time
 import pprint
+import threading
 
 # Arduino containing all the input sensors.
 arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM1", baud_rate=9600)
@@ -50,18 +51,33 @@ for i in range(0, sensorAmount):
 
 # Continuously asks for data from the Arduino
 # And updates the dictionary accordingly
-while True:
-    c.send("update_data")
-    for i in range(0, sensorAmount):
-        string, data, timeStamp = c.receive()
-        xt, yt, zt = data
-        x = int(xt)
-        y = int(yt)
-        z = int(zt)
-        # Send the data of the sensors to Arduino2
-        c2.send("data_to_arduino", x, y, z)
-        my_dictionary[x, y] = z
+class DataSender():
+	while True:
+		c.send("update_data")
+		for i in range(0, sensorAmount):
+			string, data, timeStamp = c.receive()
+			xt, yt, zt = data
+			x = int(xt)
+			y = int(yt)
+			z = int(zt)
+			# Send the data of the sensors to Arduino2
+			c2.send("data_to_arduino", x, y, z)
+			my_dictionary[x, y] = z
 	
     #pprint.pprint(my_dictionary)
     #print("=======================================================================")
     #time.sleep(0.1)
+
+class Helper():
+	print("Test")
+	
+class Helper2():
+	print("Test2")
+	
+class Helper3():
+	print("Test3")
+
+thread.start_new_thread(DataSender, ())
+thread.start_new_thread(Helper, ())
+thread.start_new_thread(Helper2, ())
+thread.start_new_thread(Helper3, ())
