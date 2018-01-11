@@ -68,6 +68,7 @@ CRGB leds[numLight][numLedsInsert];
 byte sensLoc[numSens][3] = {0};
 byte stateMap[13][10] = {0};
 byte location = 0;
+bool idle = false;
 
 /* Define available CmdMessenger commands */
 enum {
@@ -95,6 +96,7 @@ void on_build_to_arduino(void) {
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
+  idle = c.readBinArg<bool>();
   location++;
 }
 
@@ -113,6 +115,7 @@ void on_data_to_arduino(void) {
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
+  idle = c.readBinArg<bool>();
 
   for (byte i = -1; i <= 1; i++) {
     for (byte j = -1; j <= 1; j++) {
@@ -153,7 +156,7 @@ void setup() {
 void loop() {
   c.feedinSerialData();
 
-  runInserts();//////////////////////////////////////////////////////////////////
+  runInserts();
 
 }
 
@@ -231,18 +234,24 @@ void runInserts() {
 }
 
 void lightInsert(int index) {
-    // place the light animations in the case statement 
-    
-  switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
-    case 0:
-      colourChange(index, 0, 0, 0);
-      break;
-    case 1:
-      colourChange(index, 150, 200, 0);
-      break;
-    case 2:
-      colourChange(index, 0, 250, 255);
-      break;
+  // place the light animations in the case statement
+  if (idle == false) {
+    switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
+      case 0:
+        colourChange(index, 0, 0, 0);
+        break;
+      case 1:
+        colourChange(index, 150, 200, 0);
+        break;
+      case 2:
+        colourChange(index, 0, 250, 255);
+        break;
+    }
+  }
+  else {
+
+    idleLights(index);
+
   }
 }
 
@@ -254,19 +263,29 @@ void colourChange( int index, int R, int G, int B) {
   }
 }
 
-void windInsert( int index) {
-    // Place wind animations in the swich stantements
+void idleLights(int index) {
 
-  switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
-    case 0:
-      relaisControl(index, 2000, 0);
-      break;
-    case 1:
-      relaisControl(index, 2000, 0.5);
-      break;
-    case 2:
-      relaisControl(index, 2000, 1);
-      break;
+
+}
+
+void windInsert( int index) {
+  // Place wind animations in the swich stantements
+
+  if (idle == false) {
+    switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
+      case 0:
+        relaisControl(index, 2000, 0);
+        break;
+      case 1:
+        relaisControl(index, 2000, 0.5);
+        break;
+      case 2:
+        relaisControl(index, 2000, 1);
+        break;
+    }
+  }
+  else {
+    idleWind(index);
   }
 }
 
@@ -289,4 +308,9 @@ void relaisControl(int index, long period, float duty) {
 
     digitalWrite(inserts[index].pin, inserts[index].relState);
   }
+}
+
+void idleWind(int index){
+  digitalWrite(inserts[index].pin, 0);
+  inserts[index].relState = 0;
 }
