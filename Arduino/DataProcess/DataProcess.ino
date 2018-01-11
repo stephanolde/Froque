@@ -184,7 +184,7 @@ void setupInserts() {
         inserts[i].type = wind;
         inserts[i].loc[0] = insLoc[i][0];
         inserts[i].loc[1] = insLoc[i][1];
-        inserts[i].pin = 2 + windCount;
+        inserts[i].pin = 6 + windCount;
         pinMode(inserts[i].pin, OUTPUT);
         windCount ++;
         break;
