@@ -42,12 +42,13 @@ c2.send("my_sensor_amount", sensorAmount)
 c.send("setup_data")
 for i in range(0, sensorAmount):
     string, data, timeStamp = c.receive()
-    xt, yt, zt = data
+    xt, yt, zt, idlet = data
     x = int(xt)
     y = int(yt)
     z = int(zt)
-    c2.send("build_to_arduino", x, y, z)
-    my_dictionary[x, y] = z
+    idle = bool(idlet)
+    c2.send("build_to_arduino", x, y, z, idle)
+    my_dictionary[x, y, idle] = z
 
 # Continuously asks for data from the Arduino
 # And updates the dictionary accordingly
@@ -56,21 +57,29 @@ class DataSender():
 		c.send("update_data")
 		for i in range(0, sensorAmount):
 			string, data, timeStamp = c.receive()
-			xt, yt, zt = data
+			xt, yt, zt, idlet= data
 			x = int(xt)
 			y = int(yt)
 			z = int(zt)
+			idle = bool(idlet)
 			# Send the data of the sensors to Arduino2
-			c2.send("data_to_arduino", x, y, z)
-			my_dictionary[x, y] = z
+			c2.send("data_to_arduino", x, y, z, idle)
+			my_dictionary[x, y, idle] = z
 	
     #pprint.pprint(my_dictionary)
-    print("=======================================================================")
+    #print("=======================================================================")
     #time.sleep(0.1)
 
-class DataAudio():
-	while True:
-		print("Audio")
+class Helper():
+	print("Test")
+	
+class Helper2():
+	print("Test2")
+	
+class Helper3():
+	print("Test3")
 
-data1 = threading.Thread(name = 'DataSender', target = DataSender)
-data2 = threading.Thread(name = 'DataAudio', target = DataAudio)
+thread.start_new_thread(DataSender, ())
+thread.start_new_thread(Helper, ())
+thread.start_new_thread(Helper2, ())
+thread.start_new_thread(Helper3, ())
