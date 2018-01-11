@@ -258,7 +258,7 @@ void colourChange(int index, int R, int G, int B) {
 }
 
 void idleLights(int index) {
-int x = 0;
+//int x = 0;
   // This inner loop will go over each led in the current strip, one at a time
   for (int i = 0; i < numLedsInsert; i++) {
 	for (int x = 0; x < numLight; x++) {
