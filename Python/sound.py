@@ -16,7 +16,7 @@ stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
                 channels = 8,
                 rate = wf.getframerate(),
                 output = True,
-                frames_per_buffer = 44100)
+                frames_per_buffer = 44100 / 8)
 
 data = wf.readframes(chunk)
 

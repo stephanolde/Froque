@@ -2,6 +2,9 @@ import PyCmdMessenger
 import time
 import pprint
 import threading
+import pyaudio
+import wave
+import sys
 
 # Arduino containing all the input sensors.
 arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM1", baud_rate=9600)
