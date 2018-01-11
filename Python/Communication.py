@@ -37,9 +37,6 @@ sensorAmount = int(sensorAmountt[0])
 # Send the amount of sensors used to Arduino2
 c2.send("my_sensor_amount", sensorAmount)
 
-data1 = threading.Thread(name = 'DataSender', target = DataSender)
-data2 = threading.Thread(name = 'DataAudio', target = DataAudio)
-
 #Initial setup with the data given from the arduino
 #Puts all the data into a dictionary (HashMap) with the keys (x, y) and value z
 c.send("setup_data")
@@ -52,6 +49,9 @@ for i in range(0, sensorAmount):
     idle = bool(idlet)
     c2.send("build_to_arduino", x, y, z, idle)
     my_dictionary[x, y, idle] = z
+
+data1 = threading.Thread(name = 'DataSender', target = DataSender)
+data2 = threading.Thread(name = 'DataAudio', target = DataAudio)
 
 # Continuously asks for data from the Arduino
 # And updates the dictionary accordingly
