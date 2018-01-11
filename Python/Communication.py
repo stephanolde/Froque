@@ -65,19 +65,12 @@ class DataSender():
 			my_dictionary[x, y] = z
 	
     #pprint.pprint(my_dictionary)
-    #print("=======================================================================")
+    print("=======================================================================")
     #time.sleep(0.1)
 
-class Helper():
-	print("Test")
-	
-class Helper2():
-	print("Test2")
-	
-class Helper3():
-	print("Test3")
+class DataAudio():
+	while True:
+		print("Audio")
 
-thread.start_new_thread(DataSender, ())
-thread.start_new_thread(Helper, ())
-thread.start_new_thread(Helper2, ())
-thread.start_new_thread(Helper3, ())
+data1 = threading.Thread(name = 'DataSender', target = DataSender)
+data2 = threading.Thread(name = 'DataAudio', target = DataAudio)
