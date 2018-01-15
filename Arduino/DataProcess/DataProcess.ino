@@ -10,7 +10,7 @@ DEFINE_GRADIENT_PALETTE( bluefly_gp ) {
   255,   0,  0,  0};
 
 #define numIns 43     // 43  for polysens
-#define numWind 10    // max 10 for polysens
+#define numWind 8    // max 8 for polysens
 #define numLight 15   // max 15 for polysens
 #define numSound 8    // max 8 for polysens
 #define NUM_HALF 18
@@ -45,12 +45,12 @@ enum {none, light, wind, sound};
 const byte insList[numIns] =
 { sound, sound, sound, sound, sound,
   sound, sound, sound, wind, wind,
-  wind, wind, wind, wind, wind,
-  wind, wind, wind, light, light,
-  light, light, light, light, light,
-  light, light, light, light, light,
-  light, light, light, none, none,
-  none, none, none, none, none,
+  wind, wind, wind, wind, wind, 
+  wind, light, light, light, light,
+  light, light, light, light, light, 
+  light, light, light, light, light, 
+  light, none, none, none, none,
+  none, none, none,  none, none,
   none, none
 };
 
