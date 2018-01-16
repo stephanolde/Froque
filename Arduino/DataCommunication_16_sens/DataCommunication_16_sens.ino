@@ -180,8 +180,7 @@ void sensorCallback() {
     }
   }
 
-  Serial.print("");
-
+/*
   for (byte i = 0; i < numSens; i++) {
     Serial.print(sensors[i].trigPin);
     Serial.print(" ");
@@ -193,9 +192,7 @@ void sensorCallback() {
     Serial.print("): ");
     Serial.println(sensors[i].state);
   }
-
-//  on_update_data();
-
+*/
 }
 
 
@@ -212,7 +209,7 @@ void setup() {
 
   setupSensors();
 
-  Serial.println("Setup complete");
+  //Serial.println("Setup complete");
 }
 
 void loop() {
