@@ -16,14 +16,14 @@ arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=19200)
 commands = [["sensor_amount", ""],
     ["my_sensor_amount", "i"],
     ["setup_data", ""],
-    ["my_data_is", "sss"],
+    ["my_data_is", "ssss"],
     ["update_data", ""],
-    ["my_value_is", "sss"],
+    ["my_value_is", "ssss"],
     ["error", "s"]]
 			
 commands2 = [["my_sensor_amount", "i"],
-    ["build_to_arduino", "iii"],
-    ["data_to_arduino", "iii"],
+    ["build_to_arduino", "iii?"],
+    ["data_to_arduino", "iii?"],
     ["error", "s"]]
 
 my_dictionary = {}
@@ -53,29 +53,28 @@ for i in range(0, sensorAmount):
     c2.send("build_to_arduino", x, y, z, idle)
     my_dictionary[x, y, idle] = z
 
-data1 = threading.Thread(name = 'DataSender', target = DataSender)
-data2 = threading.Thread(name = 'DataAudio', target = DataAudio)
+#data1 = threading.Thread(name = 'DataSender', target = DataSender)
+#data2 = threading.Thread(name = 'DataAudio', target = DataAudio)
 
 # Continuously asks for data from the Arduino
 # And updates the dictionary accordingly
-class DataSender():
-	while True:
-		c.send("update_data")
-		for i in range(0, sensorAmount):
-			string, data, timeStamp = c.receive()
-			xt, yt, zt, idlet= data
-			x = int(xt)
-			y = int(yt)
-			z = int(zt)
-			idle = bool(idlet)
-			# Send the data of the sensors to Arduino2
-			c2.send("data_to_arduino", x, y, z, idle)
-			my_dictionary[x, y, idle] = z
-	
-    #pprint.pprint(my_dictionary)
-    #print("=======================================================================")
-    #time.sleep(0.1)
+#class DataSender():
+while True:
+	c.send("update_data")
+	for i in range(0, sensorAmount):
+		string, data, timeStamp = c.receive()
+		xt, yt, zt, idlet= data
+		x = int(xt)
+		y = int(yt)
+		z = int(zt)
+		idle = bool(idlet)
+		# Send the data of the sensors to Arduino2
+		c2.send("data_to_arduino", x, y, z, idle)
+		my_dictionary[x, y, idle] = z
+	pprint.pprint(my_dictionary)
+	print("=======================================================================")
+	#time.sleep(0.1)
 
-class DataAudio():
-	while True:
-		print("Audio")
+#class DataAudio():
+#	while True:
+#		print("Audio")
