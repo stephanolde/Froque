@@ -1,23 +1,32 @@
 #include "CmdMessenger.h"
-#include "Thread.h"
-#include "ThreadController.h"
+//#include "Thread.h"
+//#include "ThreadController.h"
 
 const int distThreshold = 300;
-const int measurementDelay = 1;
+const int measurementDelay = 60;
+#define measureTimeOut 40000
 const int regSize = 40;
 const int detectRange[2] = {1, 150};
+long lastSens = 0;
 
 // Location x, Location y, Distance z.
 
 // do not use sensors 0, 10, 18 and 19
 const int numSens = 16;
-//const byte sensLoc[numSens][2] = {{0, 7}};
-
+//const byte sensLoc[numSens][2] = {{0, 6}};
+/*
 const byte sensLoc[numSens][2] = {
-  /*{0, 4},*/ {0, 7}, {1, 1}, {1, 7}, {2, 4},
+  {0, 4}, {0, 6}, {1, 1}, {1, 7}, {2, 4},
   {2, 9}, {3, 2}, {3, 7}, {5, 5}, {5, 9},
-  /*{6, 1},*/ {6, 7}, {7, 3}, {7, 9}, {8, 6},
-  {9, 3}, {10, 1}, {11, 5}, /*{11, 9}, {12, 2}*/
+  {6, 1}, {6, 7}, {7, 3}, {7, 9}, {8, 6},
+  {9, 3}, {10, 1}, {11, 5}, {11, 9}, {12, 2}
+};
+*/
+const byte sensLoc[numSens][2] = {
+  {0, 5}, {1, 1}, {1, 7}, {2, 4},
+  {2, 9}, {3, 2}, {3, 7}, {5, 5}, {5, 9},
+  {6, 7}, {7, 3}, {7, 9}, {8, 6},
+  {9, 3}, {10, 1}, {11, 5}
 };
 
 /*  Sensor roster
@@ -50,8 +59,8 @@ struct sensor {
 const bool sens4Pin = true;    // if only 3 pin sensors are used set to false, with only 4 pin sensors set to true
 
 /* setting up the sensor Thread */
-ThreadController threadController = ThreadController();
-Thread* sensorThread = new Thread();
+//ThreadController threadController = ThreadController();
+//Thread* sensorThread = new Thread();
 
 /* Define available CmdMessenger commands */
 enum {
@@ -120,10 +129,12 @@ void sensorCallback() {
   int distance;
   bool seen = false;
 
+  
 
   for (byte i = 0; i < numSens; i++) {
-    distance = US_dist(sensors[i].trigPin, sensors[i].echoPin);
 
+    distance = US_dist(sensors[i].trigPin, sensors[i].echoPin);
+    
     if (distance > 1) {
       newReg = true;
       sensors[i].count++;
@@ -183,7 +194,7 @@ void sensorCallback() {
     Serial.println(sensors[i].state);
   }
 
-  //on_update_data();
+//  on_update_data();
 
 }
 
@@ -194,17 +205,25 @@ void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
 
-  sensorThread -> onRun(sensorCallback);
-  sensorThread -> setInterval(measurementDelay);
+  //sensorThread -> onRun(sensorCallback);
+  //sensorThread -> setInterval(measurementDelay);
 
-  threadController.add(sensorThread);
+  //threadController.add(sensorThread);
 
   setupSensors();
+
+  Serial.println("Setup complete");
 }
 
 void loop() {
   c.feedinSerialData();
-  threadController.run();
+  //threadController.run();
+
+  if (millis() - lastSens >= measurementDelay){
+    lastSens = millis();
+    sensorCallback();
+  }
+
 }
 
 void setupSensors() {
@@ -246,7 +265,7 @@ int US_dist(int tPin, int ePin) {
     delayMicroseconds(5);
     digitalWrite(tPin, LOW);          // End pulse
     pinMode(tPin, INPUT);
-    duration = pulseIn(tPin, HIGH);   // Wait for a pulse to return
+    duration = pulseIn(tPin, HIGH, measureTimeOut);   // Wait for a pulse to return
   }
   else {                              // 4 pin distance sensor
     digitalWrite(tPin, LOW);
@@ -254,7 +273,7 @@ int US_dist(int tPin, int ePin) {
     digitalWrite(tPin, HIGH);         // Begin pulse
     delayMicroseconds(10);
     digitalWrite(tPin, LOW);          // End pulse
-    duration = pulseIn(ePin, HIGH);   // Wait for a pulse to return
+    duration = pulseIn(ePin, HIGH, measureTimeOut);   // Wait for a pulse to return
   }
   dist = duration / 2 / 29;     // Calculate the disance in cm
 
