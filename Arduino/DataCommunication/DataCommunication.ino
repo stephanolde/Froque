@@ -1,17 +1,17 @@
 #include "CmdMessenger.h"
-#include "Thread.h"
-#include "ThreadController.h"
 
+#define measureTimeout 40000
 const int distThreshold = 300;
 const int measurementDelay = 50;
 const int regSize = 40;
 const int detectRange[2] = {1, 150};
+long lastSens = 0;
 
 // Location x, Location y, Distance z.
 
 const int numSens = 20;
 const byte sensLoc[numSens][2] = {
-	{0, 4}, {0, 7}, {1, 1}, {1, 7}, {2, 4},
+	{0, 4}, {0, 6}, {1, 1}, {1, 7}, {2, 4},
 	{2, 9}, {3, 2}, {3, 7}, {5, 5}, {5, 9},
 	{6, 1}, {6, 7}, {7, 3}, {7, 9}, {8, 6},
 	{9, 3}, {10, 1}, {11, 5}, {11, 9}, {12, 2}
@@ -21,8 +21,8 @@ const byte sensLoc[numSens][2] = {
  * 
  *  -1  -1   5  -1  -1   9  -1  13  -1  -1  -1  18  -1
  *  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
- *   1   3  -1   7  -1  -1  11  -1  -1  -1  -1  -1  -1
- *  -1  -1  -1  -1  -1  -1  -1  -1  14  -1  -1  -1  -1
+ *  -1   3  -1   7  -1  -1  11  -1  -1  -1  -1  -1  -1
+ *   1  -1  -1  -1  -1  -1  -1  -1  14  -1  -1  -1  -1
  *  -1  -1  -1  -1  -1   8  -1  -1  -1  -1  -1  17  -1
  *   0  -1   4  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
  *  -1  -1  -1  -1  -1  -1  -1  12  -1  15  -1  -1  -1
@@ -45,10 +45,6 @@ struct sensor {
 } sensors[numSens];
 
 const bool sens4Pin = true;    // if only 3 pin sensors are used set to false, with only 4 pin sensors set to true
-
-/* setting up the sensor Thread */
-ThreadController threadController = ThreadController();
-Thread* sensorThread = new Thread();
 
 /* Define available CmdMessenger commands */
 enum {
@@ -109,8 +105,46 @@ void attach_callbacks(void) {
   c.attach(on_unknown_command);
 }
 
+void setup() {
+  Serial.begin(BAUD_RATE);
+  attach_callbacks();
 
-void sensorCallback() {
+  setupSensors();
+}
+
+void loop() {
+  c.feedinSerialData();
+
+  if (millis() - lastSens >= measurementDelay){
+    lastSens = millis();
+   checkSensors();
+  }
+	
+}
+
+void setupSensors() {
+  for (byte i = 0; i < numSens; i++) {
+    if (i < 8) {
+      sensors[i].trigPin = 2 * i + 54;        // Allocating pins A0 to A15
+      sensors[i].echoPin = 2 * i + 55;
+      pinMode(sensors[i].trigPin, OUTPUT);
+      pinMode(sensors[i].echoPin, INPUT);
+    } else {
+      sensors[i].trigPin = 2 * i + 14;        // Allocating pins 30 to 53
+      sensors[i].echoPin = 2 * i + 15;
+      pinMode(sensors[i].trigPin, OUTPUT);
+      pinMode(sensors[i].echoPin, INPUT);
+    }
+    if (sens4Pin == false) {
+      sensors[i].echoPin = 0;
+    }
+	  
+    sensors[i].loc[0] = sensLoc[i][0];
+    sensors[i].loc[1] = sensLoc[i][1];
+  }
+}
+
+void checkSensor() {
 
   int newReg;
   int distance;
@@ -162,47 +196,6 @@ void sensorCallback() {
     }
   }
 
-  on_update_data();
-
-}
-
-
-
-
-void setup() {
-  Serial.begin(BAUD_RATE);
-  attach_callbacks();
-
-  sensorThread -> onRun(sensorCallback);
-  sensorThread -> setInterval(measurementDelay);
-
-  threadController.add(sensorThread);
-
-  setupSensors();
-}
-
-void loop() {
-  c.feedinSerialData();
-  threadController.run();
-}
-
-void setupSensors() {
-  for (byte i = 0; i < numSens; i++) {
-    if (i < 8) {
-      sensors[i].trigPin = 2 * i + 54;        // Allocating pins A0 to A15
-      sensors[i].echoPin = 2 * i + 55;
-      pinMode(sensors[i].trigPin, OUTPUT);
-      pinMode(sensors[i].echoPin, INPUT);
-    } else {
-      sensors[i].trigPin = 2 * i + 14;        // Allocating pins 30 to 53
-      sensors[i].echoPin = 2 * i + 15;
-      pinMode(sensors[i].trigPin, OUTPUT);
-      pinMode(sensors[i].echoPin, INPUT);
-    }
-    if (sens4Pin == false) {
-      sensors[i].echoPin = 0;
-    }
-  }
 }
 
 int US_dist(int tPin, int ePin) {
@@ -217,7 +210,7 @@ int US_dist(int tPin, int ePin) {
     delayMicroseconds(5);
     digitalWrite(tPin, LOW);          // End pulse
     pinMode(tPin, INPUT);
-    duration = pulseIn(tPin, HIGH);   // Wait for a pulse to return
+    duration = pulseIn(tPin, HIGH, measureTimeout);   // Wait for a pulse to return
   }
   else {                              // 4 pin distance sensor
     digitalWrite(tPin, LOW);
@@ -225,7 +218,7 @@ int US_dist(int tPin, int ePin) {
     digitalWrite(tPin, HIGH);         // Begin pulse
     delayMicroseconds(10);
     digitalWrite(tPin, LOW);          // End pulse
-    duration = pulseIn(ePin, HIGH);   // Wait for a pulse to return
+    duration = pulseIn(ePin, HIGH, measureTimeout);   // Wait for a pulse to return
   }
   dist = duration / 2 / 29;     // Calculate the disance in cm
 
