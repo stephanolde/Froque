@@ -147,7 +147,7 @@ void sensorCallback() {
         sensors[i].state = 0;
       }
     }
-    if (sensors[i].state /= 0) {
+    if (sensors[i].state != 0) {
       seen = true;
     }
   }
