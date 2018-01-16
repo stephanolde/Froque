@@ -2,14 +2,14 @@ import PyCmdMessenger
 import time
 import pprint
 import threading
-import pyaudio
+#import pyaudio
 import wave
 import sys
 
 # Arduino containing all the input sensors.
-arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM1", baud_rate=9600)
+arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=9600)
 # Arduino containing all the output.
-arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=19200)
+arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyUSB1", baud_rate=19200)
 
 # List of commands and their associated argument formats. These must be in the
 # same order as in the sketch.

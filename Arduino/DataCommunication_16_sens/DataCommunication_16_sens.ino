@@ -2,7 +2,7 @@
 //#include "Thread.h"
 //#include "ThreadController.h"
 
-const int distThreshold = 300;
+const int distThreshold = 30;
 const int measurementDelay = 60;
 #define measureTimeOut 40000
 const int regSize = 40;
@@ -54,6 +54,7 @@ struct sensor {
   bool shiftReg[regSize] = {0};
   byte count = 0;
   byte state = 0;
+  int dist;
 } sensors[numSens];
 
 const bool sens4Pin = true;    // if only 3 pin sensors are used set to false, with only 4 pin sensors set to true
@@ -153,12 +154,12 @@ void sensorCallback() {
     }
     sensors[i].shiftReg[0] = newReg;
 
-    if (sensors[i].count >= 10 && sensors[i].count < 41) {
+    if (sensors[i].count >= 1 && sensors[i].count < 5) {
       sensors[i].state = 1;
     }
     else {
 
-      if (sensors[i].count >= 41 && sensors[i].count <= 41) {
+      if (sensors[i].count >= 5 && sensors[i].count <= 41) {
         sensors[i].state = 2;
       }
       else {
@@ -168,6 +169,7 @@ void sensorCallback() {
     if (sensors[i].state != 0) {
       seen = true;
     }
+    sensors[i].dist = distance;
   }
 
   if (seen == true) {
@@ -176,10 +178,10 @@ void sensorCallback() {
   }
   else {
     if (millis() - lastActive >= idleInterval) {
-      idle = true;
+      idle = false;
     }
   }
-
+/*
   Serial.print("");
 
   for (byte i = 0; i < numSens; i++) {
@@ -193,8 +195,7 @@ void sensorCallback() {
     Serial.print("): ");
     Serial.println(sensors[i].state);
   }
-
-//  on_update_data();
+*/
 
 }
 
@@ -212,7 +213,6 @@ void setup() {
 
   setupSensors();
 
-  Serial.println("Setup complete");
 }
 
 void loop() {
