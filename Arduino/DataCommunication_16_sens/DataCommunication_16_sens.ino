@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #include "CmdMessenger.h"
 //#include "Thread.h"
 //#include "ThreadController.h"
