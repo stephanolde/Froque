@@ -4,54 +4,54 @@
 #include "FastLED.h"
 
 DEFINE_GRADIENT_PALETTE( bluefly_gp ) {
-    0,   0,  0,  0,
-   63,   0, 39, 64,
-  191, 175,215,235,
-  255,   0,  0,  0};
+  0,   0,  0,  0,
+  63,   0, 39, 64,
+  191, 175, 215, 235,
+  255,   0,  0,  0
+};
 
 #define numIns 43     // 43  for polysens
 #define numWind 8    // max 8 for polysens
 #define numLight 15   // max 15 for polysens
 #define numSound 8    // max 8 for polysens
-#define NUM_HALF 18
-#define numLedsInsert 36
+#define numLedsInsert 76
 
 const byte insLoc[numIns][2] = {
-  	{0, 5}, {0, 7}, {1, 0}, {1, 2}, {1, 5}, {1, 7}, {1, 9}, 
-  	{2, 0}, {2, 1}, {2, 3}, {2, 7}, {3, 1}, {3, 2}, {3, 4}, 
-  	{3, 6}, {3, 9}, {4, 1}, {4, 3}, {4, 7}, {4, 9}, {5, 0}, 
-  	{5, 6}, {6, 4}, {6, 7}, {6, 9}, {7, 0}, {7, 2}, {7, 6}, 
-  	{8, 3}, {8, 5}, {8, 7}, {8, 9}, {9, 0}, {9, 1}, {9, 2}, 
-  	{9, 6}, {9, 9}, {10, 3}, {10, 4}, {10, 9}, {11, 6}, {11, 8}, 
-  	{12, 0}
+  {0, 5}, {0, 7}, {1, 0}, {1, 2}, {1, 5}, {1, 7}, {1, 9},
+  {2, 0}, {2, 1}, {2, 3}, {2, 7}, {3, 1}, {3, 2}, {3, 4},
+  {3, 6}, {3, 9}, {4, 1}, {4, 3}, {4, 7}, {4, 9}, {5, 0},
+  {5, 6}, {6, 4}, {6, 7}, {6, 9}, {7, 0}, {7, 2}, {7, 6},
+  {8, 3}, {8, 5}, {8, 7}, {8, 9}, {9, 0}, {9, 1}, {9, 2},
+  {9, 6}, {9, 9}, {10, 3}, {10, 4}, {10, 9}, {11, 6}, {11, 8},
+  {12, 0}
 };
 
 /*
- *  Inserts roster (stateMap)
- *  -1   6  -1  15  19  -1  24  -1  31  36  39  -1  -1
- *  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  41  -1
- *   1   5  10  -1  18  -1  23  -1  30  -1  -1  -1  -1
- *  -1  -1  -1  14  -1  21  -1  27  -1  35  -1  40  -1
- *   0   4  -1  -1  -1  -1  -1  -1  29  -1  -1  -1  -1
- *  -1  -1  -1  13  -1  -1  22  -1  -1  -1  38  -1  -1
- *  -1  -1   9  -1  17  -1  -1  -1  28  -1  37  -1  -1
- *  -1   3  -1  12  -1  -1  -1  26  -1  34  -1  -1  -1
- *  -1  -1   8  11  16  -1  -1  -1  -1  33  -1  -1  -1
- *  -1   2   7  -1  -1  20  -1  25  -1  32  -1  -1  42
+    Inserts roster (stateMap)
+    -1   6  -1  15  19  -1  24  -1  31  36  39  -1  -1
+    -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  41  -1
+     1   5  10  -1  18  -1  23  -1  30  -1  -1  -1  -1
+    -1  -1  -1  14  -1  21  -1  27  -1  35  -1  40  -1
+     0   4  -1  -1  -1  -1  -1  -1  29  -1  -1  -1  -1
+    -1  -1  -1  13  -1  -1  22  -1  -1  -1  38  -1  -1
+    -1  -1   9  -1  17  -1  -1  -1  28  -1  37  -1  -1
+    -1   3  -1  12  -1  -1  -1  26  -1  34  -1  -1  -1
+    -1  -1   8  11  16  -1  -1  -1  -1  33  -1  -1  -1
+    -1   2   7  -1  -1  20  -1  25  -1  32  -1  -1  42
 */
 
 enum {none, light, wind, sound};
 
 const byte insList[numIns] =
-{ sound, sound, sound, sound, sound,
-  sound, sound, sound, wind, wind,
-  wind, wind, wind, wind, wind, 
-  wind, light, light, light, light,
-  light, light, light, light, light, 
-  light, light, light, light, light, 
-  light, none, none, none, none,
-  none, none, none,  none, none,
-  none, none
+{ none, light, none, sound, wind,
+  sound, wind, light, light, none,
+  light, wind, none, light, none,
+  sound, none, sound, none, light,
+  light, wind, light, light, sound,
+  none, light, none, none, light,
+  none, wind, none, wind, sound,
+  sound, light, light, wind, sound,
+  light, wind, none
 };
 
 struct insert {
@@ -68,11 +68,12 @@ struct insert {
 
 CRGB leds[numLight][numLedsInsert];
 
-#define numSens 20
+#define numSens 16
 byte sensLoc[numSens][3] = {0};
 byte stateMap[13][10] = {0};
 byte location = 0;
-bool idle = false;
+
+int idle = 0;
 
 /* Define available CmdMessenger commands */
 enum {
@@ -100,13 +101,12 @@ void on_build_to_arduino(void) {
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
-  idle = c.readBinArg<bool>();
+  // idle = c.readBinArg<bool>();
   location++;
 }
 
 /* callback */
 void on_data_to_arduino(void) {
-
   if (location == numSens) {
     location = 0;
     for (byte i = 0; i < 13; i++) {
@@ -114,26 +114,23 @@ void on_data_to_arduino(void) {
         stateMap[i][j] = {0};
       }
     }
-
   }
+
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
-  idle = c.readBinArg<bool>();
+  //idle = c.readBinArg<bool>();
 
   for (byte i = -1; i <= 1; i++) {
     for (byte j = -1; j <= 1; j++) {
-
       if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12 || sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
         continue;
       }
       if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
         stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] = sensLoc[location][2];
       }
-
     }
   }
-
   location++;
 }
 
@@ -155,26 +152,28 @@ void setup() {
   attach_callbacks();
 
   setupInserts();
+  initFastLED();
+
+  pinMode(13, OUTPUT);
+  pinMode(A0, INPUT);
 }
 
 void loop() {
   c.feedinSerialData();
-
   runInserts();
-
 }
 
+// Called in Setup
 void setupInserts() {
 
   int lightCount = 0;
   int windCount = 0;
 
-  initFastLED();
 
   for (int i = 0; i < numIns; i++) {
     switch (insList[i]) {
       case none :
-	  
+
       case sound :
         continue;
 
@@ -182,7 +181,7 @@ void setupInserts() {
         inserts[i].type = light;
         inserts[i].loc[0] = insLoc[i][0];
         inserts[i].loc[1] = insLoc[i][1];
-        inserts[i].pin = 22 + lightCount;
+        inserts[i].pin = 22 + 2 * lightCount;
         inserts[i].lightIndex = lightCount;
         lightCount ++;
         break;
@@ -199,25 +198,31 @@ void setupInserts() {
   }
 }
 
+// Called in Setup
+// 15 Led inserts
 void initFastLED() {
   FastLED.addLeds<NEOPIXEL, 22>(leds[0], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 23>(leds[1], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 24>(leds[2], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 25>(leds[3], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 26>(leds[4], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 27>(leds[5], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 28>(leds[6], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 29>(leds[7], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 30>(leds[8], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 31>(leds[9], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 32>(leds[10], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 33>(leds[11], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 34>(leds[12], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 35>(leds[13], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 36>(leds[14], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 24>(leds[1], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 26>(leds[2], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 28>(leds[3], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 30>(leds[4], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 32>(leds[5], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 34>(leds[6], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 36>(leds[7], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 38>(leds[8], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 40>(leds[9], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 42>(leds[10], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 44>(leds[11], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 46>(leds[12], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 48>(leds[13], numLedsInsert);
+  FastLED.addLeds<NEOPIXEL, 50>(leds[14], numLedsInsert);
 }
 
+// Called in Main loop
 void runInserts() {
+
+  idle = digitalRead(A0);
+  
   for (int i = 0; i < numLight + numWind; i++) {
     switch (inserts[i].type) {
       case light :
@@ -228,13 +233,35 @@ void runInserts() {
         break;
     }
   }
+
+  if (idle == 1) {
+    digitalWrite(13, HIGH);
+  } else {
+    digitalWrite(13, LOW);
+  }
   FastLED.show();
 }
 
 void lightInsert(int index) {
   // place the light animations in the case statement
-  if (idle == false) {
-    switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
+  if (idle == 1) {
+    for (int i = 0; i < numLight; i++) {
+    for (int x = 0; x < numLedsInsert; x++) {
+      leds[i][x] = CRGB::Cyan;
+    }
+    }
+    FastLED.show();
+    // idleLights();
+  } else {
+
+    for (int i = 0; i < numLight; i++) {
+    for (int x = 0; x < numLedsInsert; x++) {
+      leds[i][x] = CRGB::Red;
+    }
+    }
+    FastLED.show();
+    /*
+      switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
       case 0:
         colourChange(index, 0, 0, 0);
         break;
@@ -244,93 +271,33 @@ void lightInsert(int index) {
       case 2:
         colourChange(index, 0, 250, 255);
         break;
-    }
-  }
-  else {
-    idleLights(index);
+      }*/
   }
 }
 
 
 void colourChange(int index, int R, int G, int B) {
-
   for (byte i = 0; i < numLedsInsert; i++) {
     leds[index][i] = CRGB(R, G, B);
   }
 }
 
-void idleLights(int index) {
-//int x = 0;
-  // This inner loop will go over each led in the current strip, one at a time
-  for (int i = 0; i < numLedsInsert; i++) {
-	for (int x = 0; x < numLight; x++) {
-    if (i < NUM_HALF) {
-      leds[x][i + NUM_HALF] = CRGB::Purple;
-      //leds[x + 1][i + NUM_HALF] = CRGB::Purple;
-    } else {
-      leds[x][i - NUM_HALF] = CRGB::Purple;
-      //leds[x + 1][i - NUM_HALF] = CRGB::Purple;
-    }
-    FastLED.show();
-    leds[x][i] = CRGB::Blue;
-    //leds[x + 1][i] = CRGB::Blue;
-	}
-    delay(100);
+// Simple testable idle light animation
+void idleLights() {
+  for (int x = 0; x < numLedsInsert; x++) {
+    leds[5][x] = CRGB::Purple;
   }
-  for (int i = 0; i < numLedsInsert; i++) {
-	for (int x = 0; x < numLight; x++) {
-    leds[x][i] = CRGB::Blue;
-    if (i < NUM_HALF) {
-      leds[x][i + NUM_HALF] = CRGB::Blue;
-      //leds[x + 1][i + NUM_HALF] = CRGB::Blue;
-    } else {
-      leds[x][i - NUM_HALF] = CRGB::Blue;
-      //leds[x + 1][i - NUM_HALF] = CRGB::Blue;
-    }
-    FastLED.show();
-    leds[x][i] = CRGB::Purple;
-    //leds[x + 1][i] = CRGB::Purple;
-	}
-    delay(100);
+  FastLED.show();
+
+  for (int x = 0; x < numLedsInsert; x++) {
+    leds[5][x] = CRGB::Cyan;
   }
-  for (int i = 0; i < numLedsInsert; i++) {
-	for (int x = 0; x < numLight; x++) {
-    leds[x][i] = CRGB::Green;
-    if (i < NUM_HALF) {
-      leds[x][i + NUM_HALF] = CRGB::Purple;
-      //leds[x + 1][i + NUM_HALF] = CRGB::Purple;
-    } else {
-      leds[x][i - NUM_HALF] = CRGB::Purple;
-      //leds[x + 1][i - NUM_HALF] = CRGB::Purple;
-    }
-    FastLED.show();
-    leds[x][i] = CRGB::Cyan;
-    //leds[x + 1][i] = CRGB::Cyan;
-	}
-    delay(100);
-  }
-  for (int i = 0; i < numLedsInsert; i++) {
-	for (int x = 0; x < numLight; x++) {
-    leds[x][i] = CRGB::Cyan;
-    if (i < NUM_HALF) {
-      leds[x][i + NUM_HALF] = CRGB::Cyan;
-      leds[x + 1][i + NUM_HALF] = CRGB::Cyan;
-    } else {
-      leds[x][i - NUM_HALF] = CRGB::Cyan;
-      leds[x + 1][i - NUM_HALF] = CRGB::Cyan;
-    }
-    FastLED.show();
-    leds[x][i] = CRGB::Purple;
-    leds[x + 1][i] = CRGB::Purple;
-	}
-    delay(100);
-  }
+  FastLED.show();
 }
 
 void windInsert(int index) {
   // Place wind animations in the switch statements
-
-  if (idle == false) {
+  if (idle == 0) {
     switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
       case 0:
         relaisControl(index, 2000, 0);
@@ -342,14 +309,14 @@ void windInsert(int index) {
         relaisControl(index, 2000, 1);
         break;
     }
-  }
-  else {
+  } else {
     idleWind(index);
   }
 }
 
+// called by windInsert
+// Method to control the relais
 void relaisControl(int index, long period, float duty) {
-
   long currentMillis = millis();
 
   if (currentMillis - inserts[index].relTime >= inserts[index].relInterval) {
@@ -358,18 +325,16 @@ void relaisControl(int index, long period, float duty) {
     if (inserts[index].relState == 0) {
       inserts[index].relState = 255;
       inserts[index].relInterval = period * duty;
-
     } else {
       inserts[index].relState = 0;
       inserts[index].relInterval = period * (1 - duty);
     }
-
-
     digitalWrite(inserts[index].pin, inserts[index].relState);
   }
 }
 
-void idleWind(int index){
+// Called by windInsert
+void idleWind(int index) {
   digitalWrite(inserts[index].pin, 0);
   inserts[index].relState = 0;
 }
