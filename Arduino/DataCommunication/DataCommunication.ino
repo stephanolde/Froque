@@ -1,20 +1,22 @@
 #include "CmdMessenger.h"
+#include "Thread.h"
+#include "ThreadController.h"
 
 #define measureTimeout 40000
-const int distThreshold = 300;
+const int distThreshold = 30;
 const int measurementDelay = 50;
 const int regSize = 40;
-const int detectRange[2] = {1, 150};
+const int detectRange[2] = {20, 150};
 long lastSens = 0;
 
 // Location x, Location y, Distance z.
 
-const int numSens = 20;
+const int numSens = 16;
 const byte sensLoc[numSens][2] = {
-	{0, 4}, {0, 6}, {1, 1}, {1, 7}, {2, 4},
-	{2, 9}, {3, 2}, {3, 7}, {5, 5}, {5, 9},
-	{6, 1}, {6, 7}, {7, 3}, {7, 9}, {8, 6},
-	{9, 3}, {10, 1}, {11, 5}, {11, 9}, {12, 2}
+  {0, 5}, {1, 1}, {1, 7}, {2, 4},
+  {2, 9}, {3, 2}, {3, 7}, {5, 5}, {5, 9},
+  {6, 7}, {7, 3}, {7, 9}, {8, 6},
+  {9, 3}, {10, 1}, {11, 5}
 };
 
 /*  Sensor roster
@@ -33,7 +35,7 @@ const byte sensLoc[numSens][2] = {
 
 const long idleInterval = 30000;
 long lastActive;
-bool idle = false;
+int idle = 0;
 
 struct sensor {
   byte trigPin = 0;
@@ -42,9 +44,13 @@ struct sensor {
   bool shiftReg[regSize] = {0};
   byte count = 0;
   byte state = 0;
+  int dist;
 } sensors[numSens];
 
 const bool sens4Pin = true;    // if only 3 pin sensors are used set to false, with only 4 pin sensors set to true
+
+ThreadController threadController = ThreadController();
+Thread* sensorThread = new Thread();
 
 /* Define available CmdMessenger commands */
 enum {
@@ -109,42 +115,52 @@ void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
 
+  sensorThread -> onRun(sensorCallback);
+  sensorThread -> setInterval(measurementDelay);
+
+  threadController.add(sensorThread);
+  
   setupSensors();
 }
 
 void loop() {
   c.feedinSerialData();
 
-  if (millis() - lastSens >= measurementDelay){
-    lastSens = millis();
-   checkSensors();
-  }
-	
+  threadController.run();
+  /*if (millis() - lastSens >= measurementDelay) {
+	lastSens = millis();
+	checkSensors();
+  }	*/
 }
 
 void setupSensors() {
+  byte j = 0;
   for (byte i = 0; i < numSens; i++) {
-    if (i < 8) {
-      sensors[i].trigPin = 2 * i + 54;        // Allocating pins A0 to A15
-      sensors[i].echoPin = 2 * i + 55;
+
+    if (j == 4 || j == 9 || j == 14 || j == 19)
+      j++;
+    if (j < 8) {
+      sensors[i].trigPin = 2 * j + 54;        // Allocating pins A0 to A15
+      sensors[i].echoPin = 2 * j + 55;
       pinMode(sensors[i].trigPin, OUTPUT);
       pinMode(sensors[i].echoPin, INPUT);
     } else {
-      sensors[i].trigPin = 2 * i + 14;        // Allocating pins 30 to 53
-      sensors[i].echoPin = 2 * i + 15;
+      sensors[i].trigPin = 2 * j + 14;        // Allocating pins 30 to 53
+      sensors[i].echoPin = 2 * j + 15;
       pinMode(sensors[i].trigPin, OUTPUT);
       pinMode(sensors[i].echoPin, INPUT);
     }
     if (sens4Pin == false) {
       sensors[i].echoPin = 0;
     }
-	  
+
     sensors[i].loc[0] = sensLoc[i][0];
     sensors[i].loc[1] = sensLoc[i][1];
+    j++;
   }
 }
 
-void checkSensor() {
+void sensorCallback() {
 
   int newReg;
   int distance;
@@ -154,10 +170,10 @@ void checkSensor() {
     distance = US_dist(sensors[i].trigPin, sensors[i].echoPin);
 
     if (distance > 1) {
+      seen = true;
       newReg = true;
       sensors[i].count++;
-    }
-    else {
+    } else {
       newReg = false;
     }
 
@@ -170,30 +186,20 @@ void checkSensor() {
     }
     sensors[i].shiftReg[0] = newReg;
 
-    if (sensors[i].count >= 10 && sensors[i].count < 41) {
+    if (sensors[i].count >= 5 && sensors[i].count < 10) {
       sensors[i].state = 1;
-    }
-    else {
-      if (sensors[i].count >= 41 && sensors[i].count <= 41) {
-        sensors[i].state = 2;
-      }
-      else {
-        sensors[i].state = 0;
-      }
-    }
-    if (sensors[i].state != 0) {
-      seen = true;
+    } else if (sensors[i].count >= 10 && sensors[i].count <= 20) {
+      sensors[i].state = 2;
+	} else {
+      sensors[i].state = 0;
     }
   }
 
   if (seen == true) {
     lastActive = millis();
-    idle = false;
-  }
-  else {
-    if (millis() - lastActive >= idleInterval) {
-      idle = true;
-    }
+    idle = 1;
+  } else if (millis() - lastActive >= idleInterval) {
+    idle = 0;
   }
 
 }
