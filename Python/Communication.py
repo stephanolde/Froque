@@ -7,7 +7,7 @@ import wave
 import sys
 
 # Arduino containing all the input sensors.
-arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=9600)
+arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM1", baud_rate=9600)
 # Arduino containing all the output.
 arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyUSB1", baud_rate=19200)
 
@@ -22,8 +22,8 @@ commands = [["sensor_amount", ""],
     ["error", "s"]]
 			
 commands2 = [["my_sensor_amount", "i"],
-    ["build_to_arduino", "iii?"],
-    ["data_to_arduino", "iii?"],
+    ["build_to_arduino", "iiii"],
+    ["data_to_arduino", "iiii"],
     ["error", "s"]]
 
 my_dictionary = {}
@@ -49,7 +49,7 @@ for i in range(0, sensorAmount):
     x = int(xt)
     y = int(yt)
     z = int(zt)
-    idle = bool(idlet)
+    idle = int(idlet)
     c2.send("build_to_arduino", x, y, z, idle)
     my_dictionary[x, y, idle] = z
 
@@ -67,12 +67,12 @@ while True:
 		x = int(xt)
 		y = int(yt)
 		z = int(zt)
-		idle = bool(idlet)
+		idle = int(idlet)
 		# Send the data of the sensors to Arduino2
 		c2.send("data_to_arduino", x, y, z, idle)
 		my_dictionary[x, y, idle] = z
-	pprint.pprint(my_dictionary)
-	print("=======================================================================")
+	#pprint.pprint(my_dictionary)
+	#print("=======================================================================")
 	#time.sleep(0.1)
 
 #class DataAudio():
