@@ -7,9 +7,9 @@ import wave
 import sys
 
 # Arduino containing all the input sensors.
-arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM1", baud_rate=9600)
+arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM0", baud_rate=9600)
 # Arduino containing all the output.
-arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyUSB1", baud_rate=19200)
+#arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyUSB0", baud_rate=19200)
 
 # List of commands and their associated argument formats. These must be in the
 # same order as in the sketch.
@@ -30,7 +30,7 @@ my_dictionary = {}
 
 # Initialize the messenger
 c = PyCmdMessenger.CmdMessenger(arduino, commands)
-c2 = PyCmdMessenger.CmdMessenger(arduino2, commands2)
+#c2 = PyCmdMessenger.CmdMessenger(arduino2, commands2)
 
 # Ask how many sensors there are from Arduino
 c.send("sensor_amount")
@@ -38,7 +38,7 @@ string, sensorAmountt, timeStamp = c.receive()
 sensorAmount = int(sensorAmountt[0])
 
 # Send the amount of sensors used to Arduino2
-c2.send("my_sensor_amount", sensorAmount)
+#c2.send("my_sensor_amount", sensorAmount)
 
 #Initial setup with the data given from the arduino
 #Puts all the data into a dictionary (HashMap) with the keys (x, y) and value z
@@ -50,8 +50,8 @@ for i in range(0, sensorAmount):
     y = int(yt)
     z = int(zt)
     idle = int(idlet)
-    c2.send("build_to_arduino", x, y, z, idle)
-    my_dictionary[x, y, idle] = z
+    #c2.send("build_to_arduino", x, y, z, idle)
+    my_dictionary[x, y] = [z, idle]
 
 #data1 = threading.Thread(name = 'DataSender', target = DataSender)
 #data2 = threading.Thread(name = 'DataAudio', target = DataAudio)
@@ -69,10 +69,10 @@ while True:
 		z = int(zt)
 		idle = int(idlet)
 		# Send the data of the sensors to Arduino2
-		c2.send("data_to_arduino", x, y, z, idle)
-		my_dictionary[x, y, idle] = z
-	#pprint.pprint(my_dictionary)
-	#print("=======================================================================")
+		#c2.send("data_to_arduino", x, y, z, idle)
+		my_dictionary[x, y] = [z, idle]
+	pprint.pprint(my_dictionary)
+	print("=======================================================================")
 	#time.sleep(0.1)
 
 #class DataAudio():

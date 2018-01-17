@@ -13,7 +13,7 @@ long lastSens = 0;
 // Location x, Location y, Distance z.
 
 // do not use sensors 0, 10, 18 and 19
-const int numSens = 1;
+const int numSens = 7;
 //const byte sensLoc[numSens][2] = {{0, 6}};
 /*
 const byte sensLoc[numSens][2] = {
@@ -25,20 +25,20 @@ const byte sensLoc[numSens][2] = {
  */
 const byte sensLoc[numSens][2] = {
   {
-    0, 5  }};
-  /*, {
-    1, 1  }
-  , {
-    1, 7  }
-  , {
-    2, 4  }
-  , {
-    2, 9  }
-  , {
-    3, 2  }
-  , {
-    3, 7  }
-};*/
+    0, 5    }
+, {
+ 1, 1  }
+ , {
+ 1, 7  }
+ , {
+ 2, 4  }
+ , {
+ 2, 9  }
+ , {
+ 3, 2  }
+ , {
+ 3, 7  }
+ };
 
 /*  Sensor roster
  
@@ -62,9 +62,9 @@ struct sensor {
   byte trigPin = 0;
   byte echoPin = 0;
   int loc[2] = {
-    0, 0  };
+    0, 0    };
   bool shiftReg[regSize] = {
-    0  };
+    0    };
   byte count = 0;
   byte state = 0;
   int dist;
@@ -153,6 +153,7 @@ void sensorCallback() {
     if (distance > 1) {
       newReg = true;
       sensors[i].count++;
+      seen = true;
     }
     else {
       newReg = false;
@@ -180,11 +181,9 @@ void sensorCallback() {
         sensors[i].state = 0;
       }
     }
-    if (sensors[i].state != 0) {
-      seen = true;
-    }
+
     sensors[i].dist = distance;
-    
+
   }
 
   if (seen == true) {
@@ -235,12 +234,12 @@ void setup() {
 void loop() {
   c.feedinSerialData();
   threadController.run();
-/*
+  /*
   if (millis() - lastSens >= measurementDelay){
-    lastSens = millis();
-    sensorCallback();
-  }
-*/
+   lastSens = millis();
+   sensorCallback();
+   }
+   */
 
   if (idle == 1)
     digitalWrite(13, HIGH);
@@ -307,4 +306,5 @@ int US_dist(int tPin, int ePin) {
 
   return dist;
 }
+
 
