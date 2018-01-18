@@ -97,9 +97,9 @@ void on_build_to_arduino(void) {
   if (location == numSens) {
     location = 0;
   }
-  sensLoc[location][0] = c.readBinArg<int>();
-  sensLoc[location][1] = c.readBinArg<int>();
-  sensLoc[location][2] = c.readBinArg<int>();
+  sensLoc[location][0] = c.readInt16Arg();
+  sensLoc[location][1] = c.readInt16Arg();
+  sensLoc[location][2] = c.readInt16Arg();
   // idle = c.readBinArg<bool>();
   location++;
 }
@@ -115,10 +115,9 @@ void on_data_to_arduino(void) {
     //    }
   }
 
-  sensLoc[location][0] = c.readBinArg<int>();
-  sensLoc[location][1] = c.readBinArg<int>();
-  sensLoc[location][2] = c.readBinArg<int>();
-
+  sensLoc[location][0] = c.readInt16Arg();
+  sensLoc[location][1] = c.readInt16Arg();
+  sensLoc[location][2] = c.readInt16Arg();
 
 
   for (int i = -1; i <= 1; i++) {
