@@ -3,7 +3,7 @@
 #include "ThreadController.h"
 
 #define measureTimeout 40000
-const int distThreshold = 30;
+const int distThreshold = 60;
 const int measurementDelay = 50;
 const int regSize = 40;
 const int detectRange[2] = {20, 150};
@@ -33,7 +33,7 @@ const byte sensLoc[numSens][2] = {
  *  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
  */
 
-const long idleInterval = 30000;
+const long idleInterval = 3000;
 long lastActive;
 int idle = 0;
 
@@ -81,7 +81,7 @@ void on_setup_data(void) {
     c.sendCmdArg(sensors[i].loc[0]);
     c.sendCmdArg(sensors[i].loc[1]);
     c.sendCmdArg(sensors[i].state);
-    c.sendCmdArg(idle);
+    //c.sendCmdArg(idle);
     c.sendCmdEnd();
   }
 }
@@ -92,8 +92,8 @@ void on_update_data(void) {
     c.sendCmdStart(my_value_is);
     c.sendCmdArg(sensors[i].loc[0]);
     c.sendCmdArg(sensors[i].loc[1]);
-    c.sendCmdArg(sensors[i].state);
-    c.sendCmdArg(idle);
+    c.sendCmdArg(sensors[i].dist);
+    //c.sendCmdArg(idle);
     c.sendCmdEnd();
   }
 }
@@ -114,6 +114,9 @@ void attach_callbacks(void) {
 void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
+
+  pinMode(13, OUTPUT);
+  pinMode(7, OUTPUT);
 
   sensorThread -> onRun(sensorCallback);
   sensorThread -> setInterval(measurementDelay);
@@ -186,20 +189,26 @@ void sensorCallback() {
     }
     sensors[i].shiftReg[0] = newReg;
 
-    if (sensors[i].count >= 5 && sensors[i].count < 10) {
+    if (sensors[i].count >= 1 && sensors[i].count < 10) {
       sensors[i].state = 1;
     } else if (sensors[i].count >= 10 && sensors[i].count <= 20) {
       sensors[i].state = 2;
 	} else {
       sensors[i].state = 0;
     }
+
+    sensors[i].dist = distance;
   }
 
   if (seen == true) {
     lastActive = millis();
-    idle = 1;
-  } else if (millis() - lastActive >= idleInterval) {
     idle = 0;
+    digitalWrite(13, LOW);
+    digitalWrite(7, LOW);
+  } else if (millis() - lastActive >= idleInterval) {
+    idle = 1;
+    digitalWrite(13, HIGH);
+    digitalWrite(7, HIGH);
   }
 
 }
