@@ -54,17 +54,19 @@ const byte insList[numIns] =
   light, wind, none
 };
 
-struct insert {
-  byte type = 0;
+struct lightInsert {
   byte loc[2] = {0, 0};
+  int colour[3] = {0};
 
+} lightInserts[numLight];
+
+struct windInsert {
+  byte loc[2] = {0, 0};
   byte pin = 0;
-  byte lightIndex = 0;
-
-  byte relState = 0;
-  long relInterval = 0;
-  long relTime = 0;
-} inserts[numLight + numWind];
+  int state = 0;
+  long interval = 0;
+  long startTime = 0;
+} windInserts[numWind];
 
 CRGB leds[numLight][numLedsInsert];
 
@@ -72,8 +74,6 @@ CRGB leds[numLight][numLedsInsert];
 byte sensLoc[numSens][3] = {0};
 byte stateMap[13][10] = {0};
 byte location = 0;
-
-int idle = 0;
 
 /* Define available CmdMessenger commands */
 enum {
@@ -119,11 +119,13 @@ void on_data_to_arduino(void) {
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
-  //idle = c.readBinArg<bool>();
 
   for (byte i = -1; i <= 1; i++) {
+    if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12) {
+      continue;
+    }
     for (byte j = -1; j <= 1; j++) {
-      if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12 || sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
+      if (sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
         continue;
       }
       if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
@@ -154,8 +156,6 @@ void setup() {
   setupInserts();
   initFastLED();
 
-  pinMode(13, OUTPUT);
-  pinMode(A0, INPUT);
 }
 
 void loop() {
@@ -177,20 +177,17 @@ void setupInserts() {
         break;
 
       case light :
-        inserts[lightCount+windCount].type = light;
-        inserts[lightCount+windCount].loc[0] = insLoc[i][0];
-        inserts[lightCount+windCount].loc[1] = insLoc[i][1];
-        inserts[lightCount+windCount].pin = 22 + 2 * lightCount;
-        inserts[lightCount+windCount].lightIndex = lightCount;
+        lightInserts[lightCount].loc[0] = insLoc[i][0];
+        lightInserts[lightCount].loc[1] = insLoc[i][1];
         lightCount ++;
         break;
 
       case wind :
-        inserts[lightCount+windCount].type = wind;
-        inserts[lightCount+windCount].loc[0] = insLoc[i][0];
-        inserts[lightCount+windCount].loc[1] = insLoc[i][1];
-        inserts[lightCount+windCount].pin = 6 + windCount;
-        pinMode(inserts[lightCount+windCount].pin, OUTPUT);
+        windInserts[windCount].loc[0] = insLoc[i][0];
+        windInserts[windCount].loc[1] = insLoc[i][1];
+        windInserts[windCount].pin = 6 + windCount;
+        pinMode(windInserts[windCount].pin, OUTPUT);
+        digitalWrite(windInserts[windCount].pin, LOW);
         windCount ++;
         break;
     }
@@ -220,129 +217,75 @@ void initFastLED() {
 // Called in Main loop
 void runInserts() {
 
-  idle = digitalRead(A0);
+  byte state = 0;
 
-  for (int i = 0; i < numLight + numWind; i++) {
-    switch (inserts[i].type) {
-      case light :
-        lightInsert(i);
-        break;
-      case wind :
-        windInsert(i);
-        break;
-    }
-  }
-
-  if (idle == 1) {
-    digitalWrite(13, HIGH);
-  } else {
-    digitalWrite(13, LOW);
-  }
-  FastLED.show();
-}
-
-void lightInsert(int index) {
-  // place the light animations in the case statement
-  /*
-    if (idle == 1) {
-    for (int i = 0; i < numLight; i++) {
-    for (int x = 0; x < numLedsInsert; x++) {
-      leds[i][x] = CRGB::Cyan;
-    }
-    }
-    FastLED.show();
-    // idleLights();
-    } else {
-
-    for (int i = 0; i < numLight; i++) {
-    for (int x = 0; x < numLedsInsert; x++) {
-      leds[i][x] = CRGB::Red;
-    }
-    }
-    FastLED.show();
-  */
-  switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
-    case 0:
-      for (int x = 0; x < numLedsInsert; x++) {
-        leds[inserts[index].lightIndex][x] = CRGB::Cyan;
-      }
-      break;
-    case 1:
-      for (int x = 0; x < numLedsInsert; x++) {
-        leds[inserts[index].lightIndex][x] = CRGB::Red;
-      }
-      break;
-    case 2:
-      for (int x = 0; x < numLedsInsert; x++) {
-        leds[inserts[index].lightIndex][x] = CRGB::Green;
-      }
-      break;
-  }
-  FastLED.show();
-
-}
-
-
-void colourChange(int index, int R, int G, int B) {
-  for (byte i = 0; i < numLedsInsert; i++) {
-    leds[index][i] = CRGB(R, G, B);
-  }
-}
-
-// Simple testable idle light animation
-void idleLights() {
-  for (int x = 0; x < numLedsInsert; x++) {
-    leds[5][x] = CRGB::Purple;
-  }
-  FastLED.show();
-
-  for (int x = 0; x < numLedsInsert; x++) {
-    leds[5][x] = CRGB::Cyan;
-  }
-  FastLED.show();
-}
-
-void windInsert(int index) {
-  // Place wind animations in the switch statements
-  if (idle == 0) {
-    switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
+  for ( byte i = 0; i < numLight; i++) {
+    state = stateMap[lightInserts[i].loc[0]][lightInserts[i].loc[1]];
+    switch (state) {
       case 0:
-        relaisControl(index, 2000, 0);
+        lightState0(i);
         break;
       case 1:
-        relaisControl(index, 2000, 0.5);
-
+        lightState1(i);
         break;
       case 2:
-        relaisControl(index, 2000, 1);
+        lightState2(i);
         break;
     }
-  } else {
-    idleWind(index);
+    FastLED.show();
+  }
+
+  for ( byte i = 0; i < numWind; i++) {
+    state = stateMap[windInserts[i].loc[0]][windInserts[i].loc[1]];
+    switch (state) {
+      case 0:
+        relaisControl(i, 2000, 0);
+        break;
+      case 1:
+        relaisControl(i, 2000, 0.5);
+        break;
+      case 2:
+        relaisControl(i, 2000, 1);
+        break;
+    }
   }
 }
 
-// called by windInsert
+void lightState0(int index){
+  
+  for (int x = 0; x < numLedsInsert; x++) {
+        leds[index][x] = CRGB::Cyan;
+      }
+}
+
+void lightState1(int index){
+  
+  for (int x = 0; x < numLedsInsert; x++) {
+        leds[index][x] = CRGB::Green;
+      }
+}
+
+void lightState2(int index){
+  
+  for (int x = 0; x < numLedsInsert; x++) {
+        leds[index][x] = CRGB::Red;
+      }
+}
+
 // Method to control the relais
 void relaisControl(int index, long period, float duty) {
   long currentMillis = millis();
 
-  if (currentMillis - inserts[index].relTime >= inserts[index].relInterval) {
-    inserts[index].relTime = currentMillis;
+  if (currentMillis - windInserts[index].startTime >= windInserts[index].interval) {
+    windInserts[index].startTime = currentMillis;
 
-    if (inserts[index].relState == 0) {
-      inserts[index].relState = 255;
-      inserts[index].relInterval = period * duty;
+    if (windInserts[index].state == 0) {
+      windInserts[index].state = 255;
+      windInserts[index].interval = period * duty;
     } else {
-      inserts[index].relState = 0;
-      inserts[index].relInterval = period * (1 - duty);
+      windInserts[index].state = 0;
+      windInserts[index].interval = period * (1 - duty);
     }
-    digitalWrite(inserts[index].pin, inserts[index].relState);
+    digitalWrite(windInserts[index].pin, windInserts[index].state);
   }
-}
-
-// Called by windInsert
-void idleWind(int index) {
-  digitalWrite(inserts[index].pin, 0);
-  inserts[index].relState = 0;
 }
