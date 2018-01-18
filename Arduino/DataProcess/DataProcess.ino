@@ -118,6 +118,14 @@ void on_data_to_arduino(void) {
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
+  
+  if (location == 0){
+    if (sensLoc[location][2] > 0){
+      digitalWrite(13, HIGH);
+    } else{
+      digitalWrite(13, LOW);
+  }
+  
 
   for (byte i = -1; i <= 1; i++) {
     if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12) {
@@ -218,7 +226,7 @@ void runInserts() {
 
   byte state = 0;
 
-  for (int i = 0; i < numLight; i++) {
+  for ( byte i = 0; i < numLight; i++) {
     state = stateMap[lightInserts[i].loc[0]][lightInserts[i].loc[1]];
     switch (state) {
       case 0:
