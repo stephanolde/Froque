@@ -92,7 +92,7 @@ void on_update_data(void) {
     c.sendCmdStart(my_value_is);
     c.sendCmdArg(sensors[i].loc[0]);
     c.sendCmdArg(sensors[i].loc[1]);
-    c.sendCmdArg(sensors[i].dist);
+    c.sendCmdArg(sensors[i].state);
     //c.sendCmdArg(idle);
     c.sendCmdEnd();
   }

@@ -108,11 +108,11 @@ void on_build_to_arduino(void) {
 void on_data_to_arduino(void) {
   if (location == numSens) {
     location = 0;
-    for (byte i = 0; i < 13; i++) {
-      for (byte j = 0; j < 10; j++) {
-        stateMap[i][j] = {0};
-      }
-    }
+//    for (byte i = 0; i < 13; i++) {
+//      for (byte j = 0; j < 10; j++) {
+//        stateMap[i][j] = {0};
+//      }
+//    }
   }
 
   sensLoc[location][0] = c.readBinArg<int>();
