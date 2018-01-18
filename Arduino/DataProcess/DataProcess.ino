@@ -170,28 +170,27 @@ void setupInserts() {
   int windCount = 0;
 
 
-  for (int i = 0; i < numIns; i++) {
+  for (int i = 0; i < numSens; i++) {
     switch (insList[i]) {
       case none :
-
       case sound :
-        continue;
+        break;
 
       case light :
-        inserts[i].type = light;
-        inserts[i].loc[0] = insLoc[i][0];
-        inserts[i].loc[1] = insLoc[i][1];
-        inserts[i].pin = 22 + 2 * lightCount;
-        inserts[i].lightIndex = lightCount;
+        inserts[lightCount+windCount].type = light;
+        inserts[lightCount+windCount].loc[0] = insLoc[i][0];
+        inserts[lightCount+windCount].loc[1] = insLoc[i][1];
+        inserts[lightCount+windCount].pin = 22 + 2 * lightCount;
+        inserts[lightCount+windCount].lightIndex = lightCount;
         lightCount ++;
         break;
 
       case wind :
-        inserts[i].type = wind;
-        inserts[i].loc[0] = insLoc[i][0];
-        inserts[i].loc[1] = insLoc[i][1];
-        inserts[i].pin = 6 + windCount;
-        pinMode(inserts[i].pin, OUTPUT);
+        inserts[lightCount+windCount].type = wind;
+        inserts[lightCount+windCount].loc[0] = insLoc[i][0];
+        inserts[lightCount+windCount].loc[1] = insLoc[i][1];
+        inserts[lightCount+windCount].pin = 6 + windCount;
+        pinMode(inserts[lightCount+windCount].pin, OUTPUT);
         windCount ++;
         break;
     }
@@ -222,7 +221,7 @@ void initFastLED() {
 void runInserts() {
 
   idle = digitalRead(A0);
-  
+
   for (int i = 0; i < numLight + numWind; i++) {
     switch (inserts[i].type) {
       case light :
@@ -244,7 +243,8 @@ void runInserts() {
 
 void lightInsert(int index) {
   // place the light animations in the case statement
-  if (idle == 1) {
+  /*
+    if (idle == 1) {
     for (int i = 0; i < numLight; i++) {
     for (int x = 0; x < numLedsInsert; x++) {
       leds[i][x] = CRGB::Cyan;
@@ -252,7 +252,7 @@ void lightInsert(int index) {
     }
     FastLED.show();
     // idleLights();
-  } else {
+    } else {
 
     for (int i = 0; i < numLight; i++) {
     for (int x = 0; x < numLedsInsert; x++) {
@@ -260,19 +260,26 @@ void lightInsert(int index) {
     }
     }
     FastLED.show();
-    /*
-      switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
-      case 0:
-        colourChange(index, 0, 0, 0);
-        break;
-      case 1:
-        colourChange(index, 150, 200, 0);
-        break;
-      case 2:
-        colourChange(index, 0, 250, 255);
-        break;
-      }*/
+  */
+  switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
+    case 0:
+      for (int x = 0; x < numLedsInsert; x++) {
+        leds[inserts[index].lightIndex][x] = CRGB::Cyan;
+      }
+      break;
+    case 1:
+      for (int x = 0; x < numLedsInsert; x++) {
+        leds[inserts[index].lightIndex][x] = CRGB::Red;
+      }
+      break;
+    case 2:
+      for (int x = 0; x < numLedsInsert; x++) {
+        leds[inserts[index].lightIndex][x] = CRGB::Green;
+      }
+      break;
   }
+  FastLED.show();
+
 }
 
 
@@ -304,6 +311,7 @@ void windInsert(int index) {
         break;
       case 1:
         relaisControl(index, 2000, 0.5);
+
         break;
       case 2:
         relaisControl(index, 2000, 1);
