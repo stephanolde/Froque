@@ -88,7 +88,7 @@ CmdMessenger c = CmdMessenger(Serial, ',', ';', '/');
 
 /* callback */
 void on_sensor_amount(void) {
-  const int numSensTemp = c.readBinArg<int>();
+  const int numSensTemp = c.readInt16Arg();
   int sensLocTemp [numSensTemp][3] = { };
 }
 
