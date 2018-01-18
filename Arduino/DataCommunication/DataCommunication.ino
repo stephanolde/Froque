@@ -191,7 +191,7 @@ void sensorCallback() {
 
     if (sensors[i].count >= 1 && sensors[i].count < 10) {
       sensors[i].state = 1;
-    } else if (sensors[i].count >= 10 && sensors[i].count <= 20) {
+    } else if (sensors[i].count >= 10) {
       sensors[i].state = 2;
 	} else {
       sensors[i].state = 0;

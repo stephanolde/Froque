@@ -218,7 +218,7 @@ void runInserts() {
 
   byte state = 0;
 
-  for ( byte i = 0; i < numLight; i++) {
+  for (int i = 0; i < numLight; i++) {
     state = stateMap[lightInserts[i].loc[0]][lightInserts[i].loc[1]];
     switch (state) {
       case 0:
