@@ -108,24 +108,18 @@ void on_build_to_arduino(void) {
 void on_data_to_arduino(void) {
   if (location == numSens) {
     location = 0;
-//    for (byte i = 0; i < 13; i++) {
-//      for (byte j = 0; j < 10; j++) {
-//        stateMap[i][j] = {0};
-//      }
-//    }
+    //    for (byte i = 0; i < 13; i++) {
+    //      for (byte j = 0; j < 10; j++) {
+    //        stateMap[i][j] = {0};
+    //      }
+    //    }
   }
 
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
-  
-  if (location == 0){
-    if (sensLoc[location][2] > 0){
-      digitalWrite(13, HIGH);
-    } else{
-      digitalWrite(13, LOW);
-  }
-  
+
+
 
   for (byte i = -1; i <= 1; i++) {
     if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12) {
@@ -136,18 +130,19 @@ void on_data_to_arduino(void) {
         continue;
       }
       //if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
-        stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] = sensLoc[location][2]
-          if (stateMap[sensLoc[location][0]][sensLoc[location][1]] ] > 0){
-            digitalWrite(13, HIGH);
-          } else{
-            digitalWrite(13, LOW);
-          }
+      stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] = sensLoc[location][2];
+      if (stateMap[sensLoc[location][0]][sensLoc[location][1]] > 0) {
+        digitalWrite(13, HIGH);
+      } else {
+        digitalWrite(13, LOW);
+      }
+
       //}
     }
   }
   location++;
-}
 
+}
 /* callback */
 void on_unknown_command(void) {
   c.sendCmd(error, "Command without callback.");
@@ -263,25 +258,25 @@ void runInserts() {
   }
 }
 
-void lightState0(int index){
-  
+void lightState0(int index) {
+
   for (int x = 0; x < numLedsInsert; x++) {
-        leds[index][x] = CRGB::Cyan;
-      }
+    leds[index][x] = CRGB::Cyan;
+  }
 }
 
-void lightState1(int index){
-  
+void lightState1(int index) {
+
   for (int x = 0; x < numLedsInsert; x++) {
-        leds[index][x] = CRGB::Green;
-      }
+    leds[index][x] = CRGB::Green;
+  }
 }
 
-void lightState2(int index){
-  
+void lightState2(int index) {
+
   for (int x = 0; x < numLedsInsert; x++) {
-        leds[index][x] = CRGB::Red;
-      }
+    leds[index][x] = CRGB::Red;
+  }
 }
 
 // Method to control the relais
