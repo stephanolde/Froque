@@ -127,9 +127,9 @@ void on_data_to_arduino(void) {
       if (sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
         continue;
       }
-      if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
+      //if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
         stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] = sensLoc[location][2];
-      }
+      //}
     }
   }
   location++;
