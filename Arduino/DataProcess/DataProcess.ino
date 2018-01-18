@@ -56,7 +56,6 @@ const byte insList[numIns] =
 
 struct lightInsert {
   byte loc[2] = {0, 0};
-  int colour[numLedsInsert][3] = {0};
 
 } lightInserts[numLight];
 
