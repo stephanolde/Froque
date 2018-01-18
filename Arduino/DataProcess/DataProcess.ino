@@ -71,8 +71,8 @@ CRGB leds[numLight][numLedsInsert];
 
 #define numSens 16
 byte sensLoc[numSens][3] = {0};
-byte stateMap[13][10] = {0};
-byte location = 0;
+int stateMap[13][10] = {0};
+int location = 0;
 
 /* Define available CmdMessenger commands */
 enum {
@@ -121,11 +121,11 @@ void on_data_to_arduino(void) {
 
 
 
-  for (byte i = -1; i <= 1; i++) {
+  for (int i = -1; i <= 1; i++) {
     if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12) {
       continue;
     }
-    for (byte j = -1; j <= 1; j++) {
+    for (int j = -1; j <= 1; j++) {
       if (sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
         continue;
       }
