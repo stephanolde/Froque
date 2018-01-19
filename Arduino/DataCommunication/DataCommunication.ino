@@ -2,44 +2,55 @@
 #include "Thread.h"
 #include "ThreadController.h"
 
-const int distThreshold = 300;
+#define measureTimeout 40000
+const int distThreshold = 30;
 const int measurementDelay = 50;
 const int regSize = 40;
-const int detectRange[2] = {1, 150};
+const int detectRange[2] = {20, 150};
+long lastSens = 0;
 
 // Location x, Location y, Distance z.
-/*
-const int numSens = 20;
-int sensLoc[numSens][3] = {
-	{0, 4, 0}, {0, 7, 0}, {1, 1, 0}, {1, 7, 0}, {2, 5, 0},
-	{2, 9, 0}, {3, 2, 0}, {3, 7, 0}, {5, 5, 0}, {5, 9, 0},
-	{6, 1, 0}, {6, 7, 0}, {7, 3, 0}, {7, 9, 0}, {8, 6, 0},
-	{9, 3, 0}, {10, 1, 0}, {11, 5, 0}, {11, 9, 0}, {12, 2, 0}
-};
- */
- 
-const int numSens = 5;
-int sensLoc [numSens][3] = {
-  {0, 0, 0}, {0, 1, 0}, {1, 0, 0}, {1, 1, 0}, {2, 1, 0}
+
+const int numSens = 16;
+const byte sensLoc[numSens][2] = {
+  {0, 5}, {1, 1}, {1, 7}, {2, 4},
+  {2, 9}, {3, 2}, {3, 7}, {5, 5}, {5, 9},
+  {6, 7}, {7, 3}, {7, 9}, {8, 6},
+  {9, 3}, {10, 1}, {11, 5}
 };
 
-int sensZero[numSens];
+/*  Sensor roster
+
+    -1  -1   5  -1  -1   9  -1  13  -1  -1  -1  18  -1
+    -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
+    -1   3  -1   7  -1  -1  11  -1  -1  -1  -1  -1  -1
+     1  -1  -1  -1  -1  -1  -1  -1  14  -1  -1  -1  -1
+    -1  -1  -1  -1  -1   8  -1  -1  -1  -1  -1  17  -1
+     0  -1   4  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
+    -1  -1  -1  -1  -1  -1  -1  12  -1  15  -1  -1  -1
+    -1  -1  -1   6  -1  -1  -1  -1  -1  -1  -1  -1  19
+    -1   2  -1  -1  -1  -1  10  -1  -1  -1  16  -1  -1
+    -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
+*/
+
+const long idleInterval = 3000;
+long lastActive;
+int idle = 0;
 
 struct sensor {
-  byte trigPin;
-  byte echoPin;
+  byte trigPin = 0;
+  byte echoPin = 0;
+  int loc[2] = {0, 0};
   bool shiftReg[regSize] = {0};
   byte count = 0;
   byte state = 0;
-} sensPins[numSens];
+  int dist;
+} sensors[numSens];
 
-const bool sens4Pin = false;    // if only 3 pin sensors are used set to false, with only 4 pin sensors set to true
+const bool sens4Pin = true;    // if only 3 pin sensors are used set to false, with only 4 pin sensors set to true
 
-/* setting up the sensor Thread */
 ThreadController threadController = ThreadController();
 Thread* sensorThread = new Thread();
-
-//String sensLocString = String(sensLoc);
 
 /* Define available CmdMessenger commands */
 enum {
@@ -67,9 +78,10 @@ void on_sensor_amount(void) {
 void on_setup_data(void) {
   for (int i = 0; i < numSens; i++) {
     c.sendCmdStart(my_data_is);
-    c.sendCmdArg(sensLoc[i][0]);
-    c.sendCmdArg(sensLoc[i][1]);
-    c.sendCmdArg(sensLoc[i][2]);
+    c.sendCmdArg(sensors[i].loc[0]);
+    c.sendCmdArg(sensors[i].loc[1]);
+    c.sendCmdArg(sensors[i].state);
+    //c.sendCmdArg(idle);
     c.sendCmdEnd();
   }
 }
@@ -78,9 +90,10 @@ void on_setup_data(void) {
 void on_update_data(void) {
   for (int i = 0; i < numSens; i++) {
     c.sendCmdStart(my_value_is);
-    c.sendCmdArg(sensLoc[i][0]);
-    c.sendCmdArg(sensLoc[i][1]);
-    c.sendCmdArg(sensLoc[i][2]);
+    c.sendCmdArg(sensors[i].loc[0]);
+    c.sendCmdArg(sensors[i].loc[1]);
+    c.sendCmdArg(sensors[i].state);
+    //c.sendCmdArg(idle);
     c.sendCmdEnd();
   }
 }
@@ -98,65 +111,112 @@ void attach_callbacks(void) {
   c.attach(on_unknown_command);
 }
 
-
-void sensorCallback() { 
-  int sensOld;
-
-  for (byte i = 0; i < numSens; i++) {
-    sensOld = sensLoc[i][2];
-
-    sensLoc[i][2] = US_dist(sensPins[i].trigPin, sensPins[i].echoPin);
-
-    if (sensLoc[i][2] == 0) {
-      if (sensZero[i] < 3) {
-        sensZero[i]++;
-        sensLoc[i][2] = sensOld;
-      } else {
-        sensZero[i] = 0;
-      }
-    } else {
-      sensZero[i] = 0;
-    }
-  }
-}
-
 void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
+
+  pinMode(13, OUTPUT);
+  pinMode(7, OUTPUT);
 
   sensorThread -> onRun(sensorCallback);
   sensorThread -> setInterval(measurementDelay);
 
   threadController.add(sensorThread);
 
-  for (byte i = 0; i < numSens; i++) {
-    sensZero[i] = 0;
-  }
   setupSensors();
 }
 
+long serial_interval_timer = 0;
+#define SERIAL_INT 10
+
 void loop() {
-  c.feedinSerialData(); 
+  if ( millis() - serial_interval_timer > SERIAL_INT ) {
+    serial_interval_timer = millis();
+    c.feedinSerialData();
+  }
+
   threadController.run();
+  /*if (millis() - lastSens >= measurementDelay) {
+    lastSens = millis();
+    checkSensors();
+    }	*/
 }
 
 void setupSensors() {
+  byte j = 0;
   for (byte i = 0; i < numSens; i++) {
-    if (i < 8) {
-      sensPins[i].trigPin = 2 * i + 54;
-      sensPins[i].echoPin = 2 * i + 55;
-      pinMode(sensPins[i].trigPin, OUTPUT);
-      pinMode(sensPins[i].echoPin, INPUT);
+
+    if (j == 4 || j == 9 || j == 14 || j == 19)
+      j++;
+    if (j < 8) {
+      sensors[i].trigPin = 2 * j + 54;        // Allocating pins A0 to A15
+      sensors[i].echoPin = 2 * j + 55;
+      pinMode(sensors[i].trigPin, OUTPUT);
+      pinMode(sensors[i].echoPin, INPUT);
     } else {
-      sensPins[i].trigPin = 2 * i + 14;        // Allocating pins 30 to 53
-      sensPins[i].echoPin = 2 * i + 15;
-      pinMode(sensPins[i].trigPin, OUTPUT);
-      pinMode(sensPins[i].echoPin, INPUT);
+      sensors[i].trigPin = 2 * j + 14;        // Allocating pins 30 to 53
+      sensors[i].echoPin = 2 * j + 15;
+      pinMode(sensors[i].trigPin, OUTPUT);
+      pinMode(sensors[i].echoPin, INPUT);
     }
     if (sens4Pin == false) {
-      sensPins[i].echoPin = 0;
+      sensors[i].echoPin = 0;
     }
-  }  
+
+    sensors[i].loc[0] = sensLoc[i][0];
+    sensors[i].loc[1] = sensLoc[i][1];
+    j++;
+  }
+}
+
+void sensorCallback() {
+
+  int newReg;
+  int distance;
+  bool seen = false;
+
+  for (byte i = 0; i < numSens; i++) {
+    distance = US_dist(sensors[i].trigPin, sensors[i].echoPin);
+
+    if (distance > 1) {
+      seen = true;
+      newReg = true;
+      sensors[i].count++;
+    } else {
+      newReg = false;
+    }
+
+    if (sensors[i].shiftReg[regSize - 1] == true) {
+      sensors[i].count--;
+    }
+
+    for (byte j = regSize - 1; j > 0; j--) {
+      sensors[i].shiftReg[j] = sensors[i].shiftReg[j - 1];
+    }
+    sensors[i].shiftReg[0] = newReg;
+
+    if (sensors[i].count >= 1 && sensors[i].count < 10) {
+      sensors[i].state = 1;
+    } else if (sensors[i].count >= 10) {
+      sensors[i].state = 2;
+    } else {
+      sensors[i].state = 0;
+    }
+
+    sensors[i].dist = distance;
+  }
+
+  if (seen == true) {
+    lastActive = millis();
+    idle = 0;
+    digitalWrite(13, LOW);
+    digitalWrite(7, LOW);
+  } else if (millis() - lastActive >= idleInterval) {
+    idle = 1;
+    digitalWrite(13, HIGH);
+    digitalWrite(7, HIGH);
+  }
+
 }
 
 int US_dist(int tPin, int ePin) {
@@ -171,15 +231,15 @@ int US_dist(int tPin, int ePin) {
     delayMicroseconds(5);
     digitalWrite(tPin, LOW);          // End pulse
     pinMode(tPin, INPUT);
-    duration = pulseIn(tPin, HIGH);   // Wait for a pulse to return
-  } 
+    duration = pulseIn(tPin, HIGH, measureTimeout);   // Wait for a pulse to return
+  }
   else {                              // 4 pin distance sensor
     digitalWrite(tPin, LOW);
     delayMicroseconds(2);
     digitalWrite(tPin, HIGH);         // Begin pulse
     delayMicroseconds(10);
     digitalWrite(tPin, LOW);          // End pulse
-    duration = pulseIn(ePin, HIGH);   // Wait for a pulse to return
+    duration = pulseIn(ePin, HIGH, measureTimeout);   // Wait for a pulse to return
   }
   dist = duration / 2 / 29;     // Calculate the disance in cm
 
@@ -189,8 +249,3 @@ int US_dist(int tPin, int ePin) {
 
   return dist;
 }
-
-
-
-
-

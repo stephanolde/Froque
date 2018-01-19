@@ -1,47 +1,87 @@
 #include "CmdMessenger.h"
 #include "Thread.h"
 #include "ThreadController.h"
-#include "Adafruit_NeoPixel.h"
-#include <FastLED.h>
+#include "FastLED.h"
 
-const byte dim_curve[] = {
-    0,   1,   1,   2,   2,   2,   2,   2,   2,   3,   3,   3,   3,   3,   3,   3,
-    3,   3,   3,   3,   3,   3,   3,   4,   4,   4,   4,   4,   4,   4,   4,   4,
-    4,   4,   4,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   6,   6,   6,
-    6,   6,   6,   6,   6,   7,   7,   7,   7,   7,   7,   7,   8,   8,   8,   8,
-    8,   8,   9,   9,   9,   9,   9,   9,   10,  10,  10,  10,  10,  11,  11,  11,
-    11,  11,  12,  12,  12,  12,  12,  13,  13,  13,  13,  14,  14,  14,  14,  15,
-    15,  15,  16,  16,  16,  16,  17,  17,  17,  18,  18,  18,  19,  19,  19,  20,
-    20,  20,  21,  21,  22,  22,  22,  23,  23,  24,  24,  25,  25,  25,  26,  26,
-    27,  27,  28,  28,  29,  29,  30,  30,  31,  32,  32,  33,  33,  34,  35,  35,
-    36,  36,  37,  38,  38,  39,  40,  40,  41,  42,  43,  43,  44,  45,  46,  47,
-    48,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,
-    63,  64,  65,  66,  68,  69,  70,  71,  73,  74,  75,  76,  78,  79,  81,  82,
-    83,  85,  86,  88,  90,  91,  93,  94,  96,  98,  99,  101, 103, 105, 107, 109,
-    110, 112, 114, 116, 118, 121, 123, 125, 127, 129, 132, 134, 136, 139, 141, 144,
-    146, 149, 151, 154, 157, 159, 162, 165, 168, 171, 174, 177, 180, 183, 186, 190,
-    193, 196, 200, 203, 207, 211, 214, 218, 222, 226, 230, 234, 238, 242, 248, 255,
+DEFINE_GRADIENT_PALETTE( bluefly_gp ) {
+  0,   0,  0,  0,
+  63,   0, 39, 64,
+  191, 175, 215, 235,
+  255,   0,  0,  0
 };
 
-const int numSens = 5;
+#define numIns 43     // 43  for polysens
+#define numWind 8    // max 8 for polysens
+#define numLight 15   // max 15 for polysens
+#define numSound 8    // max 8 for polysens
+#define numLedsInsert 12
+#define LED_TYPE WS2812B
+#define COLOR_ORDER GRB
+
+const byte insLoc[numIns][2] = {
+  {0, 5}, {0, 7}, {1, 0}, {1, 2}, {1, 5}, {1, 7}, {1, 9},
+  {2, 0}, {2, 1}, {2, 3}, {2, 7}, {3, 1}, {3, 2}, {3, 4},
+  {3, 6}, {3, 9}, {4, 1}, {4, 3}, {4, 7}, {4, 9}, {5, 0},
+  {5, 6}, {6, 4}, {6, 7}, {6, 9}, {7, 0}, {7, 2}, {7, 6},
+  {8, 3}, {8, 5}, {8, 7}, {8, 9}, {9, 0}, {9, 1}, {9, 2},
+  {9, 6}, {9, 9}, {10, 3}, {10, 4}, {10, 9}, {11, 6}, {11, 8},
+  {12, 0}
+};
+
+/*
+    Inserts roster (stateMap)
+    -1   6  -1  15  19  -1  24  -1  31  36  39  -1  -1
+    -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  41  -1
+     1   5  10  -1  18  -1  23  -1  30  -1  -1  -1  -1
+    -1  -1  -1  14  -1  21  -1  27  -1  35  -1  40  -1
+     0   4  -1  -1  -1  -1  -1  -1  29  -1  -1  -1  -1
+    -1  -1  -1  13  -1  -1  22  -1  -1  -1  38  -1  -1
+    -1  -1   9  -1  17  -1  -1  -1  28  -1  37  -1  -1
+    -1   3  -1  12  -1  -1  -1  26  -1  34  -1  -1  -1
+    -1  -1   8  11  16  -1  -1  -1  -1  33  -1  -1  -1
+    -1   2   7  -1  -1  20  -1  25  -1  32  -1  -1  42
+*/
+
+enum {none, light, wind, sound};
+
+const byte insList[numIns] =
+{ none, light, none, sound, wind,
+  sound, wind, light, light, none,
+  light, wind, none, light, none,
+  sound, none, sound, none, light,
+  light, wind, light, light, sound,
+  none, light, none, none, light,
+  none, wind, none, wind, sound,
+  sound, light, light, wind, sound,
+  light, wind, none
+};
+
+struct lightInsert {
+  byte loc[2] = {0};
+
+} lightInserts[numLight];
+
+struct windInsert {
+  byte loc[2] = {0};
+  byte pin = 0;
+  int state = 0;
+  long interval = 0;
+  long startTime = 0;
+} windInserts[numWind];
+
+CRGB leds[numLight][numLedsInsert];
+
+#define numSens 16
+byte sensLoc[numSens][3] = {0};
+int stateMap[13][10] = {0};
 int location = 0;
-
-const int numLeds = 39;
-const int ledPin = 8;
-
-Adafruit_NeoPixel leds = Adafruit_NeoPixel(numLeds, ledPin, NEO_GRB + NEO_KHZ800);
-CRGB leds2[numLeds];
-int sensLoc[numSens][3] = {0};
-int ledColour[numSens][3] = {0};
-
-#define DATA_PIN 6
-#define CLOCK_PIN 7
 
 /* Define available CmdMessenger commands */
 enum {
   my_sensor_amount,
   build_to_arduino,
   data_to_arduino,
+  my_data_is,
   error,
 };
 
@@ -51,51 +91,85 @@ CmdMessenger c = CmdMessenger(Serial, ',', ';', '/');
 
 /* callback */
 void on_sensor_amount(void) {
-  const int numSensTemp = c.readBinArg<int>();
-  int sensLocTemp [numSensTemp][3] = { };
+  //  const int numSensTemp = c.readBinArg<int>();
+  //  int sensLocTemp [numSensTemp][3] = { };
 }
 
 /* callback */
 void on_build_to_arduino(void) {
-  if (location == 5) {
-    location = 0;
-  }
-  sensLoc[location][0] = c.readBinArg<int>();
-  sensLoc[location][1] = c.readBinArg<int>();
-  sensLoc[location][2] = c.readBinArg<int>();
-  location++;
-}
-
-/* callback */
-void on_data_to_arduino(void) {
-  int hue = 0;    
-  int saturation = 255;   
-  int brightness = 125;   
-  int RGB[3];
   if (location == numSens) {
     location = 0;
   }
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
-  
-  if (sensLoc[location][2] < 35) {
-    brightness = 0;
-  } else if (sensLoc[location][2] > 140) {
-    brightness = 0;
-  } else {
-    hue = map(sensLoc[location][2], 35, 150, 0, 359);
-  }
-  getRGB(hue, saturation, brightness, RGB);
-  
-  for(int i = location * numLeds/numSens; i < (location + 1)* numLeds/numSens; i++) {
-    leds.setPixelColor(i, leds.Color(RGB[0], RGB[1], RGB[2]));
-  }
-  leds.show();
-  
+
   location++;
 }
 
+/* callback */
+void on_data_to_arduino(void) {
+  if (location == numSens) {
+    location = 0;
+    //    for (byte i = 0; i < 13; i++) {
+    //      for (byte j = 0; j < 10; j++) {
+    //        stateMap[i][j] = {0};
+    //      }
+    //    }
+  }
+
+  int temp[2] = {0};
+
+  temp[0] = c.readBinArg<int>();
+  temp[1] = c.readBinArg<int>();
+  temp[2] = c.readBinArg<int>();
+  
+  c.sendCmdStart(my_data_is);
+  c.sendCmdArg(temp[0]);
+  c.sendCmdArg(temp[1]);
+  c.sendCmdArg(temp[2]);
+  c.sendCmdArg(freeRam());
+  c.sendCmdEnd();
+
+  for (int i = -1; i <= 1; i++) {
+    if (temp[0] + i < 0 || temp[0] + i > 12) {
+      continue;
+    }
+    for (int j = -1; j <= 1; j++) {
+      if (temp[1] + j < 0 || temp[1] + j > 9) {
+        continue;
+      }
+      if (stateMap[temp[0] + i][temp[1] + j] < temp[2]) {
+        stateMap[temp[0] + i][temp[1] + j] = temp[2];
+      }
+    }
+  }
+
+  //  sensLoc[location][0] = c.readBinArg<int>();
+  //  sensLoc[location][1] = c.readBinArg<int>();
+  //  sensLoc[location][2] = c.readBinArg<int>();
+  //
+  //  for (int i = -1; i <= 1; i++) {
+  //    if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12) {
+  //      continue;
+  //    }
+  //    for (int j = -1; j <= 1; j++) {
+  //      if (sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
+  //        continue;
+  //      }
+  //      if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
+  //        stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] = sensLoc[location][2];
+  //        if (stateMap[sensLoc[location][0]][sensLoc[location][1]] > 0) {
+  //          digitalWrite(13, HIGH);
+  //        } else {
+  //          digitalWrite(13, LOW);
+  //        }
+  //      }
+  //    }
+  //  }
+  //  location++;
+
+}
 /* callback */
 void on_unknown_command(void) {
   c.sendCmd(error, "Command without callback.");
@@ -109,128 +183,152 @@ void attach_callbacks(void) {
   c.attach(on_unknown_command);
 }
 
+int freeRam () {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+
 void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
 
-  leds.begin();
-  leds.show();
+  setupInserts();
+  initFastLED();
+
 }
+
+long serial_interval_timer = 0;
+#define SERIAL_INT 100
 
 void loop() {
-  c.feedinSerialData();
-  
-  setColours();
-  FastLED.show();
+  if ( millis() - serial_interval_timer > SERIAL_INT ) {
+    serial_interval_timer = millis();
+    c.feedinSerialData();
+    runInserts();
+  }
 }
 
-void setColours(){
+// Called in Setup
+void setupInserts() {
+  int lightCount = 0;
+  int windCount = 0;
 
-  for(byte i = 0; i < numSens; i++){
-  
-  switch (sensLoc[i][2]) {
+  for (int i = 0; i < numSens; i++) {
+    switch (insList[i]) {
+      case none :
+      case sound :
+        break;
+
+      case light :
+        lightInserts[lightCount].loc[0] = insLoc[i][0];
+        lightInserts[lightCount].loc[1] = insLoc[i][1];
+        lightCount ++;
+        break;
+
+      case wind :
+        windInserts[windCount].loc[0] = insLoc[i][0];
+        windInserts[windCount].loc[1] = insLoc[i][1];
+        windInserts[windCount].pin = 6 + windCount;
+        pinMode(windInserts[windCount].pin, OUTPUT);
+        digitalWrite(windInserts[windCount].pin, LOW);
+        windCount ++;
+        break;
+    }
+  }
+}
+
+// Called in Setup
+// 15 Led inserts
+void initFastLED() {
+  FastLED.addLeds<LED_TYPE, 22>(leds[0], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 24>(leds[1], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 26>(leds[2], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 28>(leds[3], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 30>(leds[4], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 32>(leds[5], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 34>(leds[6], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 36>(leds[7], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 38>(leds[8], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 40>(leds[9], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 42>(leds[10], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 44>(leds[11], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 46>(leds[12], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 48>(leds[13], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 50>(leds[14], numLedsInsert).setCorrection(TypicalLEDStrip);
+
+  for (int i = 0; i < 15; i++) {
+    for (int j = 0; j < numLedsInsert; j++) {
+      leds[i][j] = CRGB::Black;
+    }
+  }
+  FastLED.show();
+
+}
+
+// Called in Main loop
+void runInserts() {
+  byte state = 0;
+
+  for ( byte i = 0; i < numLight; i++) {
+    state = stateMap[lightInserts[i].loc[0]][lightInserts[i].loc[1]];
+    switch (state) {
       case 0:
-        colourChange(i, 0, 0, 0);
+        lightState0(i);
         break;
       case 1:
-        colourChange(i, 150, 200, 0);
+        lightState1(i);
         break;
       case 2:
-        colourChange(i, 0, 250, 255);
+        lightState2(i);
         break;
     }
-  }  
-  
-}
-
-void getRGB(int hue, int sat, int val, int colors[3]) { 
-  /* convert hue, saturation and brightness ( HSB/HSV ) to RGB
-     The dim_curve is used only on brightness/value and on saturation (inverted).
-     This looks the most natural.      
-     source: https://www.kasperkamperman.com/blog/arduino/arduino-programming-hsb-to-rgb/
-  */
- 
-  val = dim_curve[val];
-  sat = 255-dim_curve[255-sat];
- 
-  int r;
-  int g;
-  int b;
-  int base;
- 
-  if (sat == 0) { // Acromatic color (gray). Hue doesn't mind.
-    colors[0]=val;
-    colors[1]=val;
-    colors[2]=val;  
-  } else  { 
- 
-    base = ((255 - sat) * val)>>8;
- 
-    switch(hue/60) {
-    case 0:
-        r = val;
-        g = (((val-base)*hue)/60)+base;
-        b = base;
-    break;
- 
-    case 1:
-        r = (((val-base)*(60-(hue%60)))/60)+base;
-        g = val;
-        b = base;
-    break;
- 
-    case 2:
-        r = base;
-        g = val;
-        b = (((val-base)*(hue%60))/60)+base;
-    break;
- 
-    case 3:
-        r = base;
-        g = (((val-base)*(60-(hue%60)))/60)+base;
-        b = val;
-    break;
- 
-    case 4:
-        r = (((val-base)*(hue%60))/60)+base;
-        g = base;
-        b = val;
-    break;
- 
-    case 5:
-        r = val;
-        g = base;
-        b = (((val-base)*(60-(hue%60)))/60)+base;
-    break;
-    }
- 
-    colors[0]=r;
-    colors[1]=g;
-    colors[2]=b; 
-  }   
-}
-
-void colourChange( int sensIndex, int R, int G, int B) {
-
-  int targetColour[3] = {R, G, B};
-
-  leds2[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
-  
-  if (ledColour[sensIndex][0] == targetColour[0] && ledColour[sensIndex][1] == targetColour[1] && ledColour[sensIndex][2] == targetColour[2]) {
-    return;
+    FastLED.show();
   }
+
+  for ( byte i = 0; i < numWind; i++) {
+    state = stateMap[windInserts[i].loc[0]][windInserts[i].loc[1]];
+    switch (state) {
+      case 0:
+        relaisControl(i, 2000, 0);
+        break;
+      case 1:
+        relaisControl(i, 2000, 0.5);
+        break;
+      case 2:
+        relaisControl(i, 2000, 1);
+        break;
+    }
+  }
+}
+
+void lightState0(int index) {
+fill_solid(leds[index],12,CRGB::Cyan);
+}
+
+void lightState1(int index) {
+  fill_solid(leds[index],12,CRGB::Red);
+  //  FastLED.show();
+}
+
+void lightState2(int index) {
+ fill_solid(leds[index],12,CRGB::Green);
   
-  for (byte i = 0; i < 3; i++) {
-    if (ledColour[sensIndex][i] < targetColour[i]) {
-      ledColour[sensIndex][i]++;
-    } else if (ledColour[sensIndex][i] > targetColour[i]) {
-      ledColour[sensIndex][i]--;
+  //  FastLED.show();
+}
+
+//` Method to control the relais
+void relaisControl(int index, long period, float duty) {
+  long currentMillis = millis();
+  if (currentMillis - windInserts[index].startTime >= windInserts[index].interval) {
+    windInserts[index].startTime = currentMillis;
+    if (windInserts[index].state == 0) {
+      windInserts[index].state = 255;
+      windInserts[index].interval = period * duty;
     } else {
-      ledColour[sensIndex][i] = targetColour[i];
+      windInserts[index].state = 0;
+      windInserts[index].interval = period * (1 - duty);
     }
-
+    digitalWrite(windInserts[index].pin, windInserts[index].state);
   }
-
-  leds2[sensIndex] = CRGB(ledColour[sensIndex][0], ledColour[sensIndex][1], ledColour[sensIndex][2]);
-  
 }
