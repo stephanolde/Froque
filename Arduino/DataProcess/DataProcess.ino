@@ -14,7 +14,9 @@ DEFINE_GRADIENT_PALETTE( bluefly_gp ) {
 #define numWind 8    // max 8 for polysens
 #define numLight 15   // max 15 for polysens
 #define numSound 8    // max 8 for polysens
-#define numLedsInsert 76
+#define numLedsInsert 12
+#define LED_TYPE WS2812B
+#define COLOR_ORDER GRB
 
 const byte insLoc[numIns][2] = {
   {0, 5}, {0, 7}, {1, 0}, {1, 2}, {1, 5}, {1, 7}, {1, 9},
@@ -54,32 +56,32 @@ const byte insList[numIns] =
   light, wind, none
 };
 
-struct insert {
-  byte type = 0;
-  byte loc[2] = {0, 0};
+struct lightInsert {
+  byte loc[2] = {0};
 
+} lightInserts[numLight];
+
+struct windInsert {
+  byte loc[2] = {0};
   byte pin = 0;
-  byte lightIndex = 0;
-
-  byte relState = 0;
-  long relInterval = 0;
-  long relTime = 0;
-} inserts[numLight + numWind];
+  int state = 0;
+  long interval = 0;
+  long startTime = 0;
+} windInserts[numWind];
 
 CRGB leds[numLight][numLedsInsert];
 
 #define numSens 16
 byte sensLoc[numSens][3] = {0};
-byte stateMap[13][10] = {0};
-byte location = 0;
-
-int idle = 0;
+int stateMap[13][10] = {0};
+int location = 0;
 
 /* Define available CmdMessenger commands */
 enum {
   my_sensor_amount,
   build_to_arduino,
   data_to_arduino,
+  my_data_is,
   error,
 };
 
@@ -89,8 +91,8 @@ CmdMessenger c = CmdMessenger(Serial, ',', ';', '/');
 
 /* callback */
 void on_sensor_amount(void) {
-  const int numSensTemp = c.readBinArg<int>();
-  int sensLocTemp [numSensTemp][3] = { };
+  //  const int numSensTemp = c.readBinArg<int>();
+  //  int sensLocTemp [numSensTemp][3] = { };
 }
 
 /* callback */
@@ -101,7 +103,7 @@ void on_build_to_arduino(void) {
   sensLoc[location][0] = c.readBinArg<int>();
   sensLoc[location][1] = c.readBinArg<int>();
   sensLoc[location][2] = c.readBinArg<int>();
-  // idle = c.readBinArg<bool>();
+
   location++;
 }
 
@@ -109,31 +111,65 @@ void on_build_to_arduino(void) {
 void on_data_to_arduino(void) {
   if (location == numSens) {
     location = 0;
-    for (byte i = 0; i < 13; i++) {
-      for (byte j = 0; j < 10; j++) {
-        stateMap[i][j] = {0};
-      }
-    }
+    //    for (byte i = 0; i < 13; i++) {
+    //      for (byte j = 0; j < 10; j++) {
+    //        stateMap[i][j] = {0};
+    //      }
+    //    }
   }
 
-  sensLoc[location][0] = c.readBinArg<int>();
-  sensLoc[location][1] = c.readBinArg<int>();
-  sensLoc[location][2] = c.readBinArg<int>();
-  //idle = c.readBinArg<bool>();
+  int temp[2] = {0};
 
-  for (byte i = -1; i <= 1; i++) {
-    for (byte j = -1; j <= 1; j++) {
-      if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12 || sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
+  temp[0] = c.readBinArg<int>();
+  temp[1] = c.readBinArg<int>();
+  temp[2] = c.readBinArg<int>();
+  
+  c.sendCmdStart(my_data_is);
+  c.sendCmdArg(temp[0]);
+  c.sendCmdArg(temp[1]);
+  c.sendCmdArg(temp[2]);
+  c.sendCmdArg(freeRam());
+  c.sendCmdEnd();
+
+  for (int i = -1; i <= 1; i++) {
+    if (temp[0] + i < 0 || temp[0] + i > 12) {
+      continue;
+    }
+    for (int j = -1; j <= 1; j++) {
+      if (temp[1] + j < 0 || temp[1] + j > 9) {
         continue;
       }
-      if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
-        stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] = sensLoc[location][2];
+      if (stateMap[temp[0] + i][temp[1] + j] < temp[2]) {
+        stateMap[temp[0] + i][temp[1] + j] = temp[2];
       }
     }
   }
-  location++;
-}
 
+  //  sensLoc[location][0] = c.readBinArg<int>();
+  //  sensLoc[location][1] = c.readBinArg<int>();
+  //  sensLoc[location][2] = c.readBinArg<int>();
+  //
+  //  for (int i = -1; i <= 1; i++) {
+  //    if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12) {
+  //      continue;
+  //    }
+  //    for (int j = -1; j <= 1; j++) {
+  //      if (sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
+  //        continue;
+  //      }
+  //      if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
+  //        stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] = sensLoc[location][2];
+  //        if (stateMap[sensLoc[location][0]][sensLoc[location][1]] > 0) {
+  //          digitalWrite(13, HIGH);
+  //        } else {
+  //          digitalWrite(13, LOW);
+  //        }
+  //      }
+  //    }
+  //  }
+  //  location++;
+
+}
 /* callback */
 void on_unknown_command(void) {
   c.sendCmd(error, "Command without callback.");
@@ -147,6 +183,12 @@ void attach_callbacks(void) {
   c.attach(on_unknown_command);
 }
 
+int freeRam () {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+
 void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
@@ -154,21 +196,23 @@ void setup() {
   setupInserts();
   initFastLED();
 
-  pinMode(13, OUTPUT);
-  pinMode(A0, INPUT);
 }
 
+long serial_interval_timer = 0;
+#define SERIAL_INT 100
+
 void loop() {
-  c.feedinSerialData();
-  runInserts();
+  if ( millis() - serial_interval_timer > SERIAL_INT ) {
+    serial_interval_timer = millis();
+    c.feedinSerialData();
+    runInserts();
+  }
 }
 
 // Called in Setup
 void setupInserts() {
-
   int lightCount = 0;
   int windCount = 0;
-
 
   for (int i = 0; i < numSens; i++) {
     switch (insList[i]) {
@@ -177,20 +221,17 @@ void setupInserts() {
         break;
 
       case light :
-        inserts[lightCount+windCount].type = light;
-        inserts[lightCount+windCount].loc[0] = insLoc[i][0];
-        inserts[lightCount+windCount].loc[1] = insLoc[i][1];
-        inserts[lightCount+windCount].pin = 22 + 2 * lightCount;
-        inserts[lightCount+windCount].lightIndex = lightCount;
+        lightInserts[lightCount].loc[0] = insLoc[i][0];
+        lightInserts[lightCount].loc[1] = insLoc[i][1];
         lightCount ++;
         break;
 
       case wind :
-        inserts[lightCount+windCount].type = wind;
-        inserts[lightCount+windCount].loc[0] = insLoc[i][0];
-        inserts[lightCount+windCount].loc[1] = insLoc[i][1];
-        inserts[lightCount+windCount].pin = 6 + windCount;
-        pinMode(inserts[lightCount+windCount].pin, OUTPUT);
+        windInserts[windCount].loc[0] = insLoc[i][0];
+        windInserts[windCount].loc[1] = insLoc[i][1];
+        windInserts[windCount].pin = 6 + windCount;
+        pinMode(windInserts[windCount].pin, OUTPUT);
+        digitalWrite(windInserts[windCount].pin, LOW);
         windCount ++;
         break;
     }
@@ -200,149 +241,94 @@ void setupInserts() {
 // Called in Setup
 // 15 Led inserts
 void initFastLED() {
-  FastLED.addLeds<NEOPIXEL, 22>(leds[0], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 24>(leds[1], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 26>(leds[2], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 28>(leds[3], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 30>(leds[4], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 32>(leds[5], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 34>(leds[6], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 36>(leds[7], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 38>(leds[8], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 40>(leds[9], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 42>(leds[10], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 44>(leds[11], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 46>(leds[12], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 48>(leds[13], numLedsInsert);
-  FastLED.addLeds<NEOPIXEL, 50>(leds[14], numLedsInsert);
+  FastLED.addLeds<LED_TYPE, 22>(leds[0], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 24>(leds[1], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 26>(leds[2], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 28>(leds[3], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 30>(leds[4], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 32>(leds[5], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 34>(leds[6], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 36>(leds[7], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 38>(leds[8], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 40>(leds[9], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 42>(leds[10], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 44>(leds[11], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 46>(leds[12], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 48>(leds[13], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 50>(leds[14], numLedsInsert).setCorrection(TypicalLEDStrip);
+
+  for (int i = 0; i < 15; i++) {
+    for (int j = 0; j < numLedsInsert; j++) {
+      leds[i][j] = CRGB::Black;
+    }
+  }
+  FastLED.show();
+
 }
 
 // Called in Main loop
 void runInserts() {
+  byte state = 0;
 
-  idle = digitalRead(A0);
-
-  for (int i = 0; i < numLight + numWind; i++) {
-    switch (inserts[i].type) {
-      case light :
-        lightInsert(i);
-        break;
-      case wind :
-        windInsert(i);
-        break;
-    }
-  }
-
-  if (idle == 1) {
-    digitalWrite(13, HIGH);
-  } else {
-    digitalWrite(13, LOW);
-  }
-  FastLED.show();
-}
-
-void lightInsert(int index) {
-  // place the light animations in the case statement
-  /*
-    if (idle == 1) {
-    for (int i = 0; i < numLight; i++) {
-    for (int x = 0; x < numLedsInsert; x++) {
-      leds[i][x] = CRGB::Cyan;
-    }
-    }
-    FastLED.show();
-    // idleLights();
-    } else {
-
-    for (int i = 0; i < numLight; i++) {
-    for (int x = 0; x < numLedsInsert; x++) {
-      leds[i][x] = CRGB::Red;
-    }
-    }
-    FastLED.show();
-  */
-  switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
-    case 0:
-      for (int x = 0; x < numLedsInsert; x++) {
-        leds[inserts[index].lightIndex][x] = CRGB::Cyan;
-      }
-      break;
-    case 1:
-      for (int x = 0; x < numLedsInsert; x++) {
-        leds[inserts[index].lightIndex][x] = CRGB::Red;
-      }
-      break;
-    case 2:
-      for (int x = 0; x < numLedsInsert; x++) {
-        leds[inserts[index].lightIndex][x] = CRGB::Green;
-      }
-      break;
-  }
-  FastLED.show();
-
-}
-
-
-void colourChange(int index, int R, int G, int B) {
-  for (byte i = 0; i < numLedsInsert; i++) {
-    leds[index][i] = CRGB(R, G, B);
-  }
-}
-
-// Simple testable idle light animation
-void idleLights() {
-  for (int x = 0; x < numLedsInsert; x++) {
-    leds[5][x] = CRGB::Purple;
-  }
-  FastLED.show();
-
-  for (int x = 0; x < numLedsInsert; x++) {
-    leds[5][x] = CRGB::Cyan;
-  }
-  FastLED.show();
-}
-
-void windInsert(int index) {
-  // Place wind animations in the switch statements
-  if (idle == 0) {
-    switch (stateMap[inserts[index].loc[0]][inserts[index].loc[1]]) {
+  for ( byte i = 0; i < numLight; i++) {
+    state = stateMap[lightInserts[i].loc[0]][lightInserts[i].loc[1]];
+    switch (state) {
       case 0:
-        relaisControl(index, 2000, 0);
+        lightState0(i);
         break;
       case 1:
-        relaisControl(index, 2000, 0.5);
-
+        lightState1(i);
         break;
       case 2:
-        relaisControl(index, 2000, 1);
+        lightState2(i);
         break;
     }
-  } else {
-    idleWind(index);
+    FastLED.show();
+  }
+
+  for ( byte i = 0; i < numWind; i++) {
+    state = stateMap[windInserts[i].loc[0]][windInserts[i].loc[1]];
+    switch (state) {
+      case 0:
+        relaisControl(i, 2000, 0);
+        break;
+      case 1:
+        relaisControl(i, 2000, 0.5);
+        break;
+      case 2:
+        relaisControl(i, 2000, 1);
+        break;
+    }
   }
 }
 
-// called by windInsert
-// Method to control the relais
+void lightState0(int index) {
+fill_solid(leds[index],12,CRGB::Cyan);
+}
+
+void lightState1(int index) {
+  fill_solid(leds[index],12,CRGB::Red);
+  //  FastLED.show();
+}
+
+void lightState2(int index) {
+ fill_solid(leds[index],12,CRGB::Green);
+  
+  //  FastLED.show();
+}
+
+//` Method to control the relais
 void relaisControl(int index, long period, float duty) {
   long currentMillis = millis();
-
-  if (currentMillis - inserts[index].relTime >= inserts[index].relInterval) {
-    inserts[index].relTime = currentMillis;
-
-    if (inserts[index].relState == 0) {
-      inserts[index].relState = 255;
-      inserts[index].relInterval = period * duty;
+  if (currentMillis - windInserts[index].startTime >= windInserts[index].interval) {
+    windInserts[index].startTime = currentMillis;
+    if (windInserts[index].state == 0) {
+      windInserts[index].state = 255;
+      windInserts[index].interval = period * duty;
     } else {
-      inserts[index].relState = 0;
-      inserts[index].relInterval = period * (1 - duty);
+      windInserts[index].state = 0;
+      windInserts[index].interval = period * (1 - duty);
     }
-    digitalWrite(inserts[index].pin, inserts[index].relState);
+    digitalWrite(windInserts[index].pin, windInserts[index].state);
   }
-}
-
-// Called by windInsert
-void idleWind(int index) {
-  digitalWrite(inserts[index].pin, 0);
-  inserts[index].relState = 0;
 }
