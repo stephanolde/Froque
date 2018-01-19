@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 #include "CmdMessenger.h"
 //#include "Thread.h"
 //#include "ThreadController.h"
@@ -93,7 +93,6 @@ void on_setup_data(void) {
     c.sendCmdArg(sensors[i].loc[0]);
     c.sendCmdArg(sensors[i].loc[1]);
     c.sendCmdArg(sensors[i].state);
-    c.sendCmdArg(idle);
     c.sendCmdEnd();
   }
 }
@@ -105,7 +104,6 @@ void on_update_data(void) {
     c.sendCmdArg(sensors[i].loc[0]);
     c.sendCmdArg(sensors[i].loc[1]);
     c.sendCmdArg(sensors[i].state);
-    c.sendCmdArg(idle);
     c.sendCmdEnd();
 
   }
@@ -228,19 +226,17 @@ void loop() {
 }
 
 void setupSensors() {
-  byte j = 0;
+  
   for (byte i = 0; i < numSens; i++) {
-
-    if (j == 4 || j == 9 || j == 14 || j == 19)
-      j++;
-    if (j < 8) {
-      sensors[i].trigPin = 2 * j + 54;        // Allocating pins A0 to A15
-      sensors[i].echoPin = 2 * j + 55;
+    
+    if (i < 8) {
+      sensors[i].trigPin = 2 * i + 54;        // Allocating pins A0 to A15
+      sensors[i].echoPin = 2 * i + 55;
       pinMode(sensors[i].trigPin, OUTPUT);
       pinMode(sensors[i].echoPin, INPUT);
     } else {
-      sensors[i].trigPin = 2 * j + 14;        // Allocating pins 30 to 53
-      sensors[i].echoPin = 2 * j + 15;
+      sensors[i].trigPin = 2 * i + 14;        // Allocating pins 30 to 53
+      sensors[i].echoPin = 2 * i + 15;
       pinMode(sensors[i].trigPin, OUTPUT);
       pinMode(sensors[i].echoPin, INPUT);
     }
