@@ -14,7 +14,7 @@ DEFINE_GRADIENT_PALETTE( bluefly_gp ) {
 #define numWind 8    // max 8 for polysens
 #define numLight 15   // max 15 for polysens
 #define numSound 8    // max 8 for polysens
-#define numLedsInsert 12
+#define numLedsInsert 36
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 
@@ -123,7 +123,7 @@ void on_data_to_arduino(void) {
   temp[0] = c.readBinArg<int>();
   temp[1] = c.readBinArg<int>();
   temp[2] = c.readBinArg<int>();
-  
+
   c.sendCmdStart(my_data_is);
   c.sendCmdArg(temp[0]);
   c.sendCmdArg(temp[1]);
@@ -139,9 +139,9 @@ void on_data_to_arduino(void) {
       if (temp[1] + j < 0 || temp[1] + j > 9) {
         continue;
       }
-      if (stateMap[temp[0] + i][temp[1] + j] < temp[2]) {
-        stateMap[temp[0] + i][temp[1] + j] = temp[2];
-      }
+      //      if (stateMap[temp[0] + i][temp[1] + j] < temp[2]) {
+      stateMap[temp[0] + i][temp[1] + j] = temp[2];
+      //      }
     }
   }
 
@@ -184,12 +184,13 @@ void attach_callbacks(void) {
 }
 
 int freeRam () {
-  extern int __heap_start, *__brkval; 
-  int v; 
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 }
 
 void setup() {
+  FastLED.clear();
   Serial.begin(BAUD_RATE);
   attach_callbacks();
 
@@ -199,7 +200,7 @@ void setup() {
 }
 
 long serial_interval_timer = 0;
-#define SERIAL_INT 100
+#define SERIAL_INT 10
 
 void loop() {
   if ( millis() - serial_interval_timer > SERIAL_INT ) {
@@ -282,6 +283,8 @@ void runInserts() {
       case 2:
         lightState2(i);
         break;
+      default:
+        break;
     }
     FastLED.show();
   }
@@ -303,18 +306,15 @@ void runInserts() {
 }
 
 void lightState0(int index) {
-fill_solid(leds[index],12,CRGB::Cyan);
+  fill_solid(leds[index], numLedsInsert, CRGB::Blue);
 }
 
 void lightState1(int index) {
-  fill_solid(leds[index],12,CRGB::Red);
-  //  FastLED.show();
+  fill_solid(leds[index], numLedsInsert, CRGB::Red);
 }
 
 void lightState2(int index) {
- fill_solid(leds[index],12,CRGB::Green);
-  
-  //  FastLED.show();
+  fill_solid(leds[index], numLedsInsert, CRGB::Green);
 }
 
 //` Method to control the relais
