@@ -3,7 +3,7 @@
 #include "ThreadController.h"
 
 #define measureTimeout 40000
-const int distThreshold = 60;
+const int distThreshold = 30;
 const int measurementDelay = 50;
 const int regSize = 40;
 const int detectRange[2] = {20, 150};
@@ -20,18 +20,18 @@ const byte sensLoc[numSens][2] = {
 };
 
 /*  Sensor roster
- * 
- *  -1  -1   5  -1  -1   9  -1  13  -1  -1  -1  18  -1
- *  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
- *  -1   3  -1   7  -1  -1  11  -1  -1  -1  -1  -1  -1
- *   1  -1  -1  -1  -1  -1  -1  -1  14  -1  -1  -1  -1
- *  -1  -1  -1  -1  -1   8  -1  -1  -1  -1  -1  17  -1
- *   0  -1   4  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
- *  -1  -1  -1  -1  -1  -1  -1  12  -1  15  -1  -1  -1
- *  -1  -1  -1   6  -1  -1  -1  -1  -1  -1  -1  -1  19
- *  -1   2  -1  -1  -1  -1  10  -1  -1  -1  16  -1  -1
- *  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
- */
+
+    -1  -1   5  -1  -1   9  -1  13  -1  -1  -1  18  -1
+    -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
+    -1   3  -1   7  -1  -1  11  -1  -1  -1  -1  -1  -1
+     1  -1  -1  -1  -1  -1  -1  -1  14  -1  -1  -1  -1
+    -1  -1  -1  -1  -1   8  -1  -1  -1  -1  -1  17  -1
+     0  -1   4  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
+    -1  -1  -1  -1  -1  -1  -1  12  -1  15  -1  -1  -1
+    -1  -1  -1   6  -1  -1  -1  -1  -1  -1  -1  -1  19
+    -1   2  -1  -1  -1  -1  10  -1  -1  -1  16  -1  -1
+    -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1  -1
+*/
 
 const long idleInterval = 3000;
 long lastActive;
@@ -122,18 +122,24 @@ void setup() {
   sensorThread -> setInterval(measurementDelay);
 
   threadController.add(sensorThread);
-  
+
   setupSensors();
 }
 
+long serial_interval_timer = 0;
+#define SERIAL_INT 10
+
 void loop() {
-  c.feedinSerialData();
+  if ( millis() - serial_interval_timer > SERIAL_INT ) {
+    serial_interval_timer = millis();
+    c.feedinSerialData();
+  }
 
   threadController.run();
   /*if (millis() - lastSens >= measurementDelay) {
-	lastSens = millis();
-	checkSensors();
-  }	*/
+    lastSens = millis();
+    checkSensors();
+    }	*/
 }
 
 void setupSensors() {
@@ -193,7 +199,7 @@ void sensorCallback() {
       sensors[i].state = 1;
     } else if (sensors[i].count >= 10) {
       sensors[i].state = 2;
-	} else {
+    } else {
       sensors[i].state = 0;
     }
 

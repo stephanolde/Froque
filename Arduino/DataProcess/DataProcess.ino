@@ -14,9 +14,9 @@ DEFINE_GRADIENT_PALETTE( bluefly_gp ) {
 #define numWind 8    // max 8 for polysens
 #define numLight 15   // max 15 for polysens
 #define numSound 8    // max 8 for polysens
-#define numLedsInsert 76
+#define numLedsInsert 12
 #define LED_TYPE WS2812B
-#define COLOR_ORDER
+#define COLOR_ORDER GRB
 
 const byte insLoc[numIns][2] = {
   {0, 5}, {0, 7}, {1, 0}, {1, 2}, {1, 5}, {1, 7}, {1, 9},
@@ -57,12 +57,12 @@ const byte insList[numIns] =
 };
 
 struct lightInsert {
-  byte loc[2] = {0, 0};
+  byte loc[2] = {0};
 
 } lightInserts[numLight];
 
 struct windInsert {
-  byte loc[2] = {0, 0};
+  byte loc[2] = {0};
   byte pin = 0;
   int state = 0;
   long interval = 0;
@@ -81,6 +81,7 @@ enum {
   my_sensor_amount,
   build_to_arduino,
   data_to_arduino,
+  my_data_is,
   error,
 };
 
@@ -90,8 +91,8 @@ CmdMessenger c = CmdMessenger(Serial, ',', ';', '/');
 
 /* callback */
 void on_sensor_amount(void) {
-  const int numSensTemp = c.readInt16Arg();
-  int sensLocTemp [numSensTemp][3] = { };
+  //  const int numSensTemp = c.readBinArg<int>();
+  //  int sensLocTemp [numSensTemp][3] = { };
 }
 
 /* callback */
@@ -99,9 +100,10 @@ void on_build_to_arduino(void) {
   if (location == numSens) {
     location = 0;
   }
-  sensLoc[location][0] = c.readInt16Arg();
-  sensLoc[location][1] = c.readInt16Arg();
-  sensLoc[location][2] = c.readInt16Arg();
+  sensLoc[location][0] = c.readBinArg<int>();
+  sensLoc[location][1] = c.readBinArg<int>();
+  sensLoc[location][2] = c.readBinArg<int>();
+
   location++;
 }
 
@@ -116,29 +118,56 @@ void on_data_to_arduino(void) {
     //    }
   }
 
-  sensLoc[location][0] = c.readInt16Arg();
-  sensLoc[location][1] = c.readInt16Arg();
-  sensLoc[location][2] = c.readInt16Arg();
+  int temp[2] = {0};
+
+  temp[0] = c.readBinArg<int>();
+  temp[1] = c.readBinArg<int>();
+  temp[2] = c.readBinArg<int>();
+  
+  c.sendCmdStart(my_data_is);
+  c.sendCmdArg(temp[0]);
+  c.sendCmdArg(temp[1]);
+  c.sendCmdArg(temp[2]);
+  c.sendCmdArg(freeRam());
+  c.sendCmdEnd();
 
   for (int i = -1; i <= 1; i++) {
-    if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12) {
+    if (temp[0] + i < 0 || temp[0] + i > 12) {
       continue;
     }
     for (int j = -1; j <= 1; j++) {
-      if (sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
+      if (temp[1] + j < 0 || temp[1] + j > 9) {
         continue;
       }
-      if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
-        stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] = sensLoc[location][2];
-        if (stateMap[sensLoc[location][0]][sensLoc[location][1]] > 0) {
-          digitalWrite(13, HIGH);
-        } else {
-          digitalWrite(13, LOW);
-        }
+      if (stateMap[temp[0] + i][temp[1] + j] < temp[2]) {
+        stateMap[temp[0] + i][temp[1] + j] = temp[2];
       }
     }
   }
-  location++;
+
+  //  sensLoc[location][0] = c.readBinArg<int>();
+  //  sensLoc[location][1] = c.readBinArg<int>();
+  //  sensLoc[location][2] = c.readBinArg<int>();
+  //
+  //  for (int i = -1; i <= 1; i++) {
+  //    if (sensLoc[location][0] + i < 0 || sensLoc[location][0] + i > 12) {
+  //      continue;
+  //    }
+  //    for (int j = -1; j <= 1; j++) {
+  //      if (sensLoc[location][1] + j < 0 || sensLoc[location][1] + j > 9) {
+  //        continue;
+  //      }
+  //      if (stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] < sensLoc[location][2]) {
+  //        stateMap[sensLoc[location][0] + i][sensLoc[location][1] + j] = sensLoc[location][2];
+  //        if (stateMap[sensLoc[location][0]][sensLoc[location][1]] > 0) {
+  //          digitalWrite(13, HIGH);
+  //        } else {
+  //          digitalWrite(13, LOW);
+  //        }
+  //      }
+  //    }
+  //  }
+  //  location++;
 
 }
 /* callback */
@@ -154,6 +183,12 @@ void attach_callbacks(void) {
   c.attach(on_unknown_command);
 }
 
+int freeRam () {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+
 void setup() {
   Serial.begin(BAUD_RATE);
   attach_callbacks();
@@ -163,9 +198,15 @@ void setup() {
 
 }
 
+long serial_interval_timer = 0;
+#define SERIAL_INT 100
+
 void loop() {
-  c.feedinSerialData();
-  runInserts();
+  if ( millis() - serial_interval_timer > SERIAL_INT ) {
+    serial_interval_timer = millis();
+    c.feedinSerialData();
+    runInserts();
+  }
 }
 
 // Called in Setup
@@ -200,26 +241,33 @@ void setupInserts() {
 // Called in Setup
 // 15 Led inserts
 void initFastLED() {
-  FastLED.addLeds<LED_TYPE, 22, COLOR_ORDER>(leds[0], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 24, COLOR_ORDER>(leds[1], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 26, COLOR_ORDER>(leds[2], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 28, COLOR_ORDER>(leds[3], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 30, COLOR_ORDER>(leds[4], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 32, COLOR_ORDER>(leds[5], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 34, COLOR_ORDER>(leds[6], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 36, COLOR_ORDER>(leds[7], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 38, COLOR_ORDER>(leds[8], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 40, COLOR_ORDER>(leds[9], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 42, COLOR_ORDER>(leds[10], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 44, COLOR_ORDER>(leds[11], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 46, COLOR_ORDER>(leds[12], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 48, COLOR_ORDER>(leds[13], numLedsInsert).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 50, COLOR_ORDER>(leds[14], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 22>(leds[0], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 24>(leds[1], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 26>(leds[2], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 28>(leds[3], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 30>(leds[4], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 32>(leds[5], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 34>(leds[6], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 36>(leds[7], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 38>(leds[8], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 40>(leds[9], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 42>(leds[10], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 44>(leds[11], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 46>(leds[12], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 48>(leds[13], numLedsInsert).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 50>(leds[14], numLedsInsert).setCorrection(TypicalLEDStrip);
+
+  for (int i = 0; i < 15; i++) {
+    for (int j = 0; j < numLedsInsert; j++) {
+      leds[i][j] = CRGB::Black;
+    }
+  }
+  FastLED.show();
+
 }
 
 // Called in Main loop
 void runInserts() {
-
   byte state = 0;
 
   for ( byte i = 0; i < numLight; i++) {
@@ -255,24 +303,21 @@ void runInserts() {
 }
 
 void lightState0(int index) {
-  for (int x = 0; x < numLedsInsert; x++) {
-    leds[index][x] = CRGB::Cyan;
-  }
+fill_solid(leds[index],12,CRGB::Cyan);
 }
 
 void lightState1(int index) {
-  for (int x = 0; x < numLedsInsert; x++) {
-    leds[index][x] = CRGB::Green;
-  }
+  fill_solid(leds[index],12,CRGB::Red);
+  //  FastLED.show();
 }
 
 void lightState2(int index) {
-  for (int x = 0; x < numLedsInsert; x++) {
-    leds[index][x] = CRGB::Red;
-  }
+ fill_solid(leds[index],12,CRGB::Green);
+  
+  //  FastLED.show();
 }
 
-// Method to control the relais
+//` Method to control the relais
 void relaisControl(int index, long period, float duty) {
   long currentMillis = millis();
   if (currentMillis - windInserts[index].startTime >= windInserts[index].interval) {
