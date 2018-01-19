@@ -7,9 +7,9 @@ import wave
 import sys
 
 # Arduino containing all the input sensors.
-arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM1", baud_rate=9600)
+arduino = PyCmdMessenger.ArduinoBoard("/dev/ttyACM2", baud_rate=9600)
 # Arduino containing all the output.
-arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyUSB0", baud_rate=19200)
+arduino2 = PyCmdMessenger.ArduinoBoard("/dev/ttyACM1", baud_rate=19200)
 
 # List of commands and their associated argument formats. These must be in the
 # same order as in the sketch.
@@ -24,10 +24,10 @@ commands = [["sensor_amount", ""],
 commands2 = [["my_sensor_amount", "i"],
     ["build_to_arduino", "iii"],
     ["data_to_arduino", "iii"],
+    ["my_data_is", "ssss"],
     ["error", "s"]]
 
 my_dictionary = {}
-idle = 1
 
 # Initialize the messenger
 c = PyCmdMessenger.CmdMessenger(arduino, commands)
@@ -51,7 +51,8 @@ for i in range(0, sensorAmount):
     y = int(yt)
     z = int(zt)
     #idle = int(idlet)
-    c2.send("build_to_arduino", x, y, z)
+    #c2.send("build_to_arduino", x, y, z)
+    
     my_dictionary[x, y] = [z]
 
 #data1 = threading.Thread(name = 'DataSender', target = DataSender)
@@ -73,10 +74,12 @@ while True:
         #if (idle > 0):
             #print("HELLO")
         # Send the data of the sensors to Arduino2
-        c2.send("data_to_arduino", x, y, 2)
+        c2.send("data_to_arduino", x, y, z)
+        string, data, timeStamp = c2.receive()
+        print(data)
         my_dictionary[x, y] = [z]
-    #pprint.pprint(my_dictionary)
-    #print("=======================================================================")
+##    pprint.pprint(my_dictionary)
+##    print("=======================================================================")
     #time.sleep(0.1)
 
 #class DataAudio():
