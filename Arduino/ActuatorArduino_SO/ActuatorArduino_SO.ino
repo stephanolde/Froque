@@ -3,6 +3,7 @@
 #define COLOR_ORDER GRB
 #define NUM_LEDS    76
 #define NUM_RINGS   15
+#define NUM_WIND    8
 
 CRGB leds[NUM_RINGS + 2][NUM_LEDS]; // +2 so we can precalculate things
 
@@ -11,12 +12,18 @@ CRGB leds[NUM_RINGS + 2][NUM_LEDS]; // +2 so we can precalculate things
 struct LEDring {
   boolean Activated = false;
   int State = 0;
-  int StartTime = 0;
-  int StateTime;
-  int LastSeen;
+  long StartTime = 0;
+  long StateTime;
+  long LastSeen;
   int count = 0;
   int check = 1;
 } LEDRings[NUM_RINGS];
+
+struct windInsert {
+  long startTime = 0;
+  long interval = 0;
+  bool state = false;
+} windInserts[NUM_WIND];
 
 struct GlobalVar {
   int brightness = 100; // just a starting value;
@@ -28,7 +35,8 @@ struct GlobalVar {
   int ActivatedSize = 0;
   int color[3] = {100, 150, 200};
   int maxState;
-  int timeSinceWave;
+  long timeSinceWave;
+  int windSensors[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 
 } GlobalVars;
 
@@ -65,22 +73,6 @@ void setup() {
   FastLED.addLeds<LED_TYPE, 48, COLOR_ORDER>(leds[13], NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.addLeds<LED_TYPE, 50, COLOR_ORDER>(leds[14], NUM_LEDS).setCorrection(TypicalLEDStrip);
 
-  // so we can call a single animation for all led rings
-  FastLED.addLeds<LED_TYPE, 22, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 24, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 26, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 28, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 30, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 32, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 34, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 36, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 38, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 40, COLOR_ORDER>(leds[15],  NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 42, COLOR_ORDER>(leds[15], NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 44, COLOR_ORDER>(leds[15], NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 46, COLOR_ORDER>(leds[15], NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 48, COLOR_ORDER>(leds[15], NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 50, COLOR_ORDER>(leds[15], NUM_LEDS).setCorrection(TypicalLEDStrip);
 
 
 
@@ -93,8 +85,6 @@ void setup() {
   FastLED.delay(3000);
   FastLED.clear();
 
-
-
 }
 
 void loop() {
@@ -102,7 +92,7 @@ void loop() {
   UpdateStates();
   CycleVariables();
   ShowAnimation();
-  //  RegulateFans(); // not yet active
+  RegulateFans(); // not yet active
   LoopProtection();
 
 }
@@ -110,16 +100,18 @@ void loop() {
 void UpdateStates() {
 
   GlobalVars.maxState = 0;
-GlobalVars.ActivatedSize = 0;
+  GlobalVars.ActivatedSize = 0;
 
   for (int i = 0; i < 15; i++) {
 
-
+    if (LEDRings[i].State == 0) {
+      LEDRings[i].StateTime = 0;
+      LEDRings[i].LastSeen = 0;
+    }
     LEDRings[i].count = 0;
     for (int j = 0; j < 3; j++) {
       if (digitalRead(A0 + i) == 0) {
         LEDRings[i].count++;
-        Serial.println(i);
       }
     }
 
@@ -129,28 +121,30 @@ GlobalVars.ActivatedSize = 0;
     if (LEDRings[i].count >= 2) {
       LEDRings[i].LastSeen = millis();
 
+      if (LEDRings[i].State == 0) {
+        LEDRings[i].StartTime = millis();   // ToDo remove startTime for state time
+        LEDRings[i].StateTime = millis();
+        LEDRings[i].State = 1;
+      }
+
+      if (LEDRings[i].State == 1 && millis() - LEDRings[i].StateTime >= 3000 ) {
+        LEDRings[i].State = 2;
+        LEDRings[i].StateTime = millis();
+        LEDRings[i].LastSeen = millis(); // beundingetje
+      }
     }
 
-    if (LEDRings[i].count >= 2 && LEDRings[i].State == 0) {
-      LEDRings[i].StartTime = millis();
-      LEDRings[i].State = 1;
 
-    }
-
-    if (millis() - LEDRings[i].StateTime >= 3000 && LEDRings[i].State < 2 && LEDRings[i].State > 0) {
-      LEDRings[i].State++;
-      LEDRings[i].StateTime = millis();
-    }
-    // if (LEDRings[i].State > 0 && LEDRings[i].count <= 2 && millis() - LEDRings[i].LastSeen >= GlobalVars.TimeOut) {
-    // LEDRings[i].State--; // decide here if we want a timeout implemented
-    // LEDRings[i].LastSeen = millis();
-
-
-
-    if (LEDRings[i].State > 0 && millis() - LEDRings[i].LastSeen >= 1000) {
+    if (LEDRings[i].State > 0 && millis() - LEDRings[i].LastSeen >= GlobalVars.TimeOut) {
       LEDRings[i].State--;
       LEDRings[i].LastSeen = millis();
+      LEDRings[i].StateTime = millis();
     }
+
+    if (LEDRings[i].State != 0) {
+      //GlobalVars.ActivatedSize++;
+    }
+
     if (LEDRings[i].State == 0) {
       GlobalVars.ActivatedSize--;
       LEDRings[i].StartTime = 0;
@@ -159,7 +153,16 @@ GlobalVars.ActivatedSize = 0;
 
     if (LEDRings[i].State == 2) {
       GlobalVars.maxState = 1;
+
     }
+
+
+
+    /*   if (LEDRings[i].StateTime >= 3000) {
+         Serial.println(millis() - LEDRings[i].StateTime);
+         Serial.println(millis());
+
+       }*/
   }
 }
 
@@ -193,42 +196,51 @@ void CycleVariables() {
 }
 
 void ShowAnimation() {
-if (GlobalVars.ActivatedSize >= 8 && millis()-GlobalVars.timeSinceWave >= 60000){
-  WaveOverWall();
-  GlobalVars.timeSinceWave = millis();
+
+
+  if (millis() - GlobalVars.timeSinceWave >= 60000) {
+    WaveOverWall();
+    GlobalVars.timeSinceWave = millis();
   }
-else{
+  else {
 
-  if (GlobalVars.maxState > 0) {
-    PreCalculateRainbow();
-  }
-
-  //  if (GlobalVars.ActivatedSize >= 5) {
-  //
-  //  SystemWideAnimation();
-  //  }
-  //  else {
-
-  FastLED.clear();
-  for (int i = 0; i < 15 ; i++) {
-
-    switch (LEDRings[i].State) {
-      case 0:
-        animation0(i);
-        break;
-      case 1:
-        animation1(i);
-        break;
-      case 2:
-        animation2(i);
-        break;
-
-
+    if (GlobalVars.maxState > 0) {
+      PreCalculateRainbow();
     }
-  }
 
-  FastLED.show();
-}
+    //  if (GlobalVars.ActivatedSize >= 5) {
+    //
+    //  SystemWideAnimation();
+    //  }
+    //  else {
+
+    // for( int i = 0; i<15; i++){
+    //   Serial.print(LEDRings[i].State);
+    //   Serial.print("  ");
+    // }
+    // Serial.println();
+
+    FastLED.clear();
+    for (int i = 0; i < 15 ; i++) {
+
+      switch (LEDRings[i].State) {
+        case 0:
+          animation0(i);
+          break;
+        case 1:
+          animation1(i);
+          break;
+        case 2:
+          animation2(i);
+          break;
+
+
+      }
+    }
+
+    FastLED.show();
+
+  }
 }
 
 
@@ -252,8 +264,8 @@ void animation0(int LEDindex) {
       fill_solid(leds[LEDindex] + 12, 24, CRGB::Cyan);
       fadeLightBy(leds[LEDindex] + 12, 24, GlobalVars.brightness);
       break;
-  
-}
+
+  }
 }
 
 void animation1(int LEDindex) {
@@ -272,17 +284,39 @@ void animation2(int LEDindex) {
 }
 
 void RegulateFans() {
-  // need to map this. TODO
-  for (int i = 0; i < 8; i++) {
-    if (LEDRings[i].State == 1 || LEDRings[i].State == 2) {
-      digitalWrite(6 + i, HIGH);
 
-    }
-    else {
-      digitalWrite(6 + i, LOW);
+  int index;
+
+  for (int i = 0; i < NUM_WIND; i++) {
+    index = GlobalVars.windSensors[i];
+
+    switch (LEDRings[index].State) {
+      case 1:
+        windControl(i, 1000, 0.25);
+        break;
+      case 2:
+        windControl(i, 1000, 1);
+        break;
+      default:
+        windControl(i, 1000, 0);
+        break;
     }
   }
+}
 
+void windControl(int index, long period, float duty) {
+  long currentMillis = millis();
+  if (currentMillis - windInserts[index].startTime >= windInserts[index].interval) {
+    windInserts[index].startTime = currentMillis;
+    if (windInserts[index].state == false && duty != 0) {
+      windInserts[index].state = true;
+      windInserts[index].interval = period * duty;
+    } else if (windInserts[index].state == true && duty != 1) {
+      windInserts[index].state = false;
+      windInserts[index].interval = period * (1 - duty);
+    }
+    digitalWrite(6 + index, windInserts[index].state);
+  }
 }
 
 void SystemWideAnimation() {
@@ -298,7 +332,7 @@ void SystemWideAnimation() {
 
 void LoopProtection() {
 
-  for (int i = 0; i < 15 ; i++) {
+  for (int i = 0; i < 15 ; i++) {                       // ToDo remove startTime for satate time
     if (millis() - LEDRings[i].StartTime > 30000) {
       LEDRings[i].State = 0;
       LEDRings[i].StartTime = 0;
@@ -316,31 +350,32 @@ void PreCalculateRainbow() {
 }
 
 void WaveOverWall() {
+  FastLED.clear();
   for (int j = 0; j < 15; j++) {
     int i = 0;
     while ( i < 21) {
 
-      leds[j][40 + i].setRGB(GlobalVars.color[1],GlobalVars.color[2],GlobalVars.color[3]);
-      leds[j][76 - i].setRGB(GlobalVars.color[1],GlobalVars.color[2],GlobalVars.color[3]);
+      leds[j][40 + i].setRGB(GlobalVars.color[1], GlobalVars.color[2], GlobalVars.color[3]);
+      leds[j][76 - i].setRGB(GlobalVars.color[1], GlobalVars.color[2], GlobalVars.color[3]);
 
       if (i > 0) {
 
-        leds[j][12].setRGB(GlobalVars.color[1],GlobalVars.color[2],GlobalVars.color[3]);
+        leds[j][12].setRGB(GlobalVars.color[1], GlobalVars.color[2], GlobalVars.color[3]);
 
-        leds[j][12 + map(i, 1, 20, 0, 12)].setRGB(GlobalVars.color[1],GlobalVars.color[2],GlobalVars.color[3]);
-        leds[j][23 + map(i, 1, 20, 12, 0)].setRGB(GlobalVars.color[1],GlobalVars.color[2],GlobalVars.color[3]);
+        leds[j][12 + map(i, 1, 20, 0, 12)].setRGB(GlobalVars.color[1], GlobalVars.color[2], GlobalVars.color[3]);
+        leds[j][23 + map(i, 1, 20, 12, 0)].setRGB(GlobalVars.color[1], GlobalVars.color[2], GlobalVars.color[3]);
 
       }
       if (i > 4) {
-        leds[j][map(i, 4, 20, 0, 6)].setRGB(GlobalVars.color[1],GlobalVars.color[2],GlobalVars.color[3]);
-        leds[j][6 + map(i, 4, 20, 6, 0)].setRGB(GlobalVars.color[1],GlobalVars.color[2],GlobalVars.color[3]);
+        leds[j][map(i, 4, 20, 0, 6)].setRGB(GlobalVars.color[1], GlobalVars.color[2], GlobalVars.color[3]);
+        leds[j][6 + map(i, 4, 20, 6, 0)].setRGB(GlobalVars.color[1], GlobalVars.color[2], GlobalVars.color[3]);
       }
 
       FastLED.show();
       if (i < 10) {
-        FastLED.delay(50);
-      } else {
         FastLED.delay(20);
+      } else {
+        FastLED.delay(5);
       }
       i++;
 
