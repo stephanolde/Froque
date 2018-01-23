@@ -71,13 +71,13 @@ void measure() {
     if (Sensors[i].distance >= minDistance && Sensors[i].distance <= maxDistance) { // Filter values outside of the predetermined range.
       Sensors[i].lastSeen = millis();                                               // Record the internal clocktime a sensor got a valid echo.
       digitalWrite(i+2, LOW);                                                       // Send a signal to the other Arduino.
-      Serial.println(i +';'+ true);                                                // Sends a sensor index and a state to the PI
+      Serial.println(i +';'+ 1);                                                // Sends a sensor index and a state to the PI
     }
 
     else {
       if (millis() - Sensors[i].lastSeen >= pushTime) {                             // Remove the active signal when it has been pushed for a predetermined time.
         digitalWrite(i+2, HIGH);                                                    // Gives the other Arduino the time to loop and register the value.
-        Serial.println(i +';'+ false);                                               // Sends a sensor index and a state to the PI
+        Serial.println(i +';'+ 0);                                               // Sends a sensor index and a state to the PI
       }
     }
   }
