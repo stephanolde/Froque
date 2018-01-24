@@ -84,14 +84,14 @@ void measure() {
       state[i] = true;
       Serial.print(i);
       Serial.print(';');
-      Serial.println(true);                                              // Sends a sensor index and a state to the PI
+      Serial.println(1);                                              // Sends a sensor index and a state to the PI
     }
 
     else {
       state[i] = false;
       Serial.print(i);
       Serial.print(';');
-      Serial.println(false);                                             // Sends a sensor index and a state to the PI
+      Serial.println(0);                                             // Sends a sensor index and a state to the PI
 
     }
   }
