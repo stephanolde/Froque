@@ -50,11 +50,18 @@ void setup() {
   for (int i = 0; i < 15; i++) { // Declare the communication pins for each sensor.
     pinMode (i + 2, OUTPUT);       // To remove outliers on the other Arduino we have used the PIN_PULLUP function
     digitalWrite(i + 2, HIGH);     // This filters out some noise and will only give a signal when there is a connection with the ground
+    Serial.println(Sensors[i].State);
     // Resulting in having these pins on high from the setup onwards.
   }
 }
 
 void loop() {
+  if (Serial.available()) {
+    char inByte = Serial.read();
+    for (int j = 0; j < 15; j++) {
+      Serial.println(Sensors[j].State);
+    }
+  }
   measure(); // The function which measures the distance for each sensor and sends a signal to the other Arduino when neccesary.
 }
 
@@ -66,6 +73,7 @@ void measure() {
     Sensors[i].echoTime = sonar[i].ping_median(medianMeasuraments);   // Take the average echotime of three measurements per sensor.
     Sensors[i].distance = sonar[i].convert_cm(Sensors[i].echoTime);   // Convert the echotime to an usable distance.
 
+
     if (Sensors[i].distance >= minDistance && Sensors[i].distance <= maxDistance) { // Filter values outside of the predetermined range.
 
       if (Sensors[i].State == 1 && millis() - Sensors[i].StateTime >= 2000) {
@@ -73,7 +81,7 @@ void measure() {
         Sensors[i].State = 2;
       }
 
-      if (Sensors[i].State == 0 && Sensors[i].StateTime != 0) {
+      if (Sensors[i].State == 0 /*&& Sensors[i].StateTime != 0*/) {
         Sensors[i].StateTime = millis();
         Sensors[i].State = 1;
       }
@@ -90,13 +98,13 @@ void measure() {
         // Sends a sensor index and a state to the PI
       }
     }
-    if (millis() - Sensors[i].lastSeen >= 2000 && Sensors[i].lastSeen != 0) {
+    if (millis() - Sensors[i].lastSeen >= 2000 && Sensors[i].lastSeen != 0 && Sensors[i].State != 0) {
       Sensors[i].State--;
       Sensors[i].StateTime = millis();
+      Sensors[i].lastSeen = millis();
       if (Sensors[i].State <= 0) {
         Sensors[i].StateTime = 0;
       }
     }
-    Serial.println(Sensors[i].State);
   }
 }

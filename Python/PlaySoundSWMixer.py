@@ -18,7 +18,9 @@ count = 0
 
 # sndMain.play(loops=-1, volume=0.0)
 while True:
+    print "HI"
     totalValue = 0
+    arduino.write(str(chr(33)))
     for i in range(0, 15):
         value = arduino.readline()[:-2]
         if value:
@@ -30,19 +32,19 @@ while True:
         if canPlay == 0:
             canPlay = 1
             count = 0
-            sndMain.play(loops=-1, volume=0.3)
+            sndMain.play(loops=-1, volume=0.5)
 
     print "ValueArray: ", valueArray, "Can Play: ", canPlay, "Total Value: ", totalValue
     # Sound is allowed, run the scripts from here
     if canPlay == 1:
         if totalValue > 2:
-            snd2.play(volume=0.4)
-            time.sleep(snd2.get_length())
-            snd1.play(volume=0.3)
-            time.sleep(snd1.get_length())
+            snd2.play(volume=0.3)
+            time.sleep(10)
+            snd1.play(volume=0.2)
+            time.sleep(10)
         elif totalValue > 0:
             snd1.play(volume=0.7)
-            time.sleep(snd1.get_length())
+            time.sleep(10)
         time.sleep(1)
         print "LOL"
         snd2.play(volume=0.7)
