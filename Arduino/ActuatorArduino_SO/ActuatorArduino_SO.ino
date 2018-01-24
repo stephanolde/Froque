@@ -40,6 +40,7 @@ struct GlobalVar {
   long timeSinceWave;
   int windMap[8] = {0, 5, 5, 5, 5, 2, 5, 4};
   int windCorrection[15] = {12, 11, 0, 13, 10, 8, 7, 14, 9, 1, 5, 6, 2, 3, 4};
+  int connext[4] = {0};
 
 } GlobalVars;
 
@@ -53,6 +54,10 @@ void setup() {
   for (int i = A0; i <= A15; i++) {
     pinMode (i, INPUT_PULLUP);
   }
+
+  // Declare input pins Wemos
+  for (int i = 2; i < 6; i++)
+    pinMode (i, INPUT);
 
   // Declare outputs for fan relais
   for (int i = 6; i <= 13; i++) {
@@ -101,6 +106,7 @@ void setup() {
 void loop() {
 
   UpdateStates();
+  UpdateMQTT();
   CycleVariables();
   ShowAnimation();
   RegulateFans(); // not yet active
@@ -125,9 +131,6 @@ void UpdateStates() {
         LEDRings[i].count++;
       }
     }
-
-
-
 
     if (LEDRings[i].count >= 2) {
       LEDRings[i].LastSeen = millis();
@@ -169,7 +172,62 @@ void UpdateStates() {
   }
 }
 
+void UpdateMQTT() {
 
+  int dataIn[4];
+
+  GlobalVars.connext[0] = 0;
+
+  for ( int i = 0; i < 4; i++) {
+    dataIn[i] = digitalRead(i + 2);
+  }
+
+  if (dataIn[0] == 1) {
+    GlobalVars.connext[0] = 1;
+    switch(4 * dataIn[3] + 2 * dataIn[2] + dataIn[1]){
+      case 0:
+      GlobalVars.connext[1] = 100;
+      GlobalVars.connext[2] = 100;
+      GlobalVars.connext[3] = 255;
+      break;
+      case 1:
+      GlobalVars.connext[1] = 200;
+      GlobalVars.connext[2] = 255;
+      GlobalVars.connext[3] = 0;
+      break;
+      case 2:
+      GlobalVars.connext[1] = 0;
+      GlobalVars.connext[2] = 255;
+      GlobalVars.connext[3] = 0;
+      break;
+      case 3:
+      GlobalVars.connext[1] = 0;
+      GlobalVars.connext[2] = 0;
+      GlobalVars.connext[3] = 255;
+      break;
+      case 4:
+      GlobalVars.connext[1] = 255;
+      GlobalVars.connext[2] = 0;
+      GlobalVars.connext[3] = 255;
+      break;
+      case 5:
+      GlobalVars.connext[1] = 255;
+      GlobalVars.connext[2] = 127;
+      GlobalVars.connext[3] = 0;
+      break;
+      case 6:
+      GlobalVars.connext[1] = 0;
+      GlobalVars.connext[2] = 255;
+      GlobalVars.connext[3] = 127;
+      break;
+      case 7:
+      GlobalVars.connext[1] = 0;
+      GlobalVars.connext[2] = 255;
+      GlobalVars.connext[3] = 255;
+      break;
+    }
+  }
+}
 
 void CycleVariables() {
 
@@ -201,59 +259,64 @@ void CycleVariables() {
 
 void ShowAnimation() {
 
-  /*
-    if (millis() - GlobalVars.timeSinceWave >= 60000) {
-      WaveOverWall(0,0,0);
-      GlobalVars.timeSinceWave = millis();
-    }
-    else {*/
-
-  if (GlobalVars.ActivatedSize > 7 && GlobalVars.ActivatedSize < 15 && millis() - GlobalVars.timeSinceWave >= 60000) {
-    WaveOverWall(0,0,0);
+  if (GlobalVars.connext[0] == 1) {
+    GlobalVars.connext[0] = 0;
+    WaveOverWall(GlobalVars.connext[1], GlobalVars.connext[2], GlobalVars.connext[3]);
     GlobalVars.timeSinceWave = millis();
-    return;
-  }
+  } else {
+    /*
+      if (millis() - GlobalVars.timeSinceWave >= 60000) {
+        WaveOverWall(0,0,0);
+        GlobalVars.timeSinceWave = millis();
+      }
+      else {*/
 
-  if (GlobalVars.ActivatedSize == 15) {
-    SystemWideAnimation();
-  }
-
-  if (GlobalVars.maxState > 0) {
-    PreCalculateRainbow();
-  }
-
-  //  if (GlobalVars.ActivatedSize >= 5) {
-  //
-  //  SystemWideAnimation();
-  //  }
-  //  else {
-
-  // for( int i = 0; i<15; i++){
-  //   Serial.print(LEDRings[i].State);
-  //   Serial.print("  ");
-  // }
-  // Serial.println();
-
-  FastLED.clear();
-  for (int i = 0; i < 15 ; i++) {
-
-    switch (LEDRings[i].State) {
-      case 0:
-        animation0(i);
-        break;
-      case 1:
-        animation1(i);
-        break;
-      case 2:
-        animation2(i);
-        break;
-
-
+    if (GlobalVars.ActivatedSize > 7 && GlobalVars.ActivatedSize < 15 && millis() - GlobalVars.timeSinceWave >= 60000) {
+      WaveOverWall(0, 0, 0);
+      GlobalVars.timeSinceWave = millis();
+      return;
     }
+
+    if (GlobalVars.ActivatedSize == 15) {
+      SystemWideAnimation();
+    }
+
+    if (GlobalVars.maxState > 0) {
+      PreCalculateRainbow();
+    }
+
+    //  if (GlobalVars.ActivatedSize >= 5) {
+    //
+    //  SystemWideAnimation();
+    //  }
+    //  else {
+
+    // for( int i = 0; i<15; i++){
+    //   Serial.print(LEDRings[i].State);
+    //   Serial.print("  ");
+    // }
+    // Serial.println();
+
+    FastLED.clear();
+    for (int i = 0; i < 15 ; i++) {
+
+      switch (LEDRings[i].State) {
+        case 0:
+          animation0(i);
+          break;
+        case 1:
+          animation1(i);
+          break;
+        case 2:
+          animation2(i);
+          break;
+
+
+      }
+    }
+
+    FastLED.show();
   }
-
-  FastLED.show();
-
   //}
 }
 
@@ -341,8 +404,8 @@ void SystemWideAnimation() {
 
   // random colored speckles that blink in and fade smoothly
   for (int i = 0; i < 15; i++) {
-    fill_solid(leds[animationMap[i]],76,CRGB(random(0,255),random(0,255),random(0,255)));
-    
+    fill_solid(leds[animationMap[i]], 76, CRGB(random(0, 255), random(0, 255), random(0, 255)));
+
   }
 }
 
@@ -361,18 +424,18 @@ void PreCalculateRainbow() {
   fill_rainbow( leds[16], 12, GlobalVars.brightness + 15, 15 );
   fill_rainbow( leds[16] + 12, 24, GlobalVars.brightness + 7, 9 );
   fill_rainbow( leds[16] + 36, 40, GlobalVars.brightness, 6 );
-  
+
 }
 
 void WaveOverWall(int R, int G, int B) {
-    
-    if (R == 0 && G == 0 && B == 0){
-        R = GlobalVars.color[1];
-        G = GlobalVars.color[2];
-        B = GlobalVars.color[3];
-    }
-    
-    
+
+  if (R == 0 && G == 0 && B == 0) {
+    R = GlobalVars.color[1];
+    G = GlobalVars.color[2];
+    B = GlobalVars.color[3];
+  }
+
+
   FastLED.clear();
   FastLED.show();
 
@@ -381,29 +444,29 @@ void WaveOverWall(int R, int G, int B) {
     int i = 0;
     while ( i < 19) {
       if (i == 0) {
-        leds[j][i].setRGB(R,G,B);
+        leds[j][i].setRGB(R, G, B);
       }
 
-      leds[j][41 + i].setRGB(R,G,B);
-      leds[j][75 - i].setRGB(R,G,B);
+      leds[j][41 + i].setRGB(R, G, B);
+      leds[j][75 - i].setRGB(R, G, B);
 
       if (i > 0) {
 
-        leds[j][12].setRGB(R,G,B);
+        leds[j][12].setRGB(R, G, B);
 
         int k = map(i, 1, 20, 0, 12);
-        leds[j][13 + k].setRGB(R,G,B);
-        leds[j][23 - k].setRGB(R,G,B);
+        leds[j][13 + k].setRGB(R, G, B);
+        leds[j][23 - k].setRGB(R, G, B);
 
       }
       if (i > 4) {
         if ( i == 5) {
-          leds[j][0].setRGB(R,G,B);
+          leds[j][0].setRGB(R, G, B);
         }
         int m = map(i, 4, 20, 0, 6);
 
-        leds[j][1 + m].setRGB(R,G,B);
-        leds[j][11 - m].setRGB(R,G,B);
+        leds[j][1 + m].setRGB(R, G, B);
+        leds[j][11 - m].setRGB(R, G, B);
       }
 
       if (i < 5) {
