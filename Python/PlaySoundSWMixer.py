@@ -10,6 +10,23 @@ snd3 = swmixer.Sound("test.wav")
 
 snd3.play(loops=-1, volume=0.3)
 while True:
+    totalValue = 0
+    for i in range(0, 15):
+        #data = arduino.readline()[:-2]
+        value = arduino.readline()[:-2]
+        if value:
+            print value
+            totalValue += int(value)
+    print totalValue
+    if totalValue > 2:
+        snd2.play(volume=0.4)
+        time.sleep(4.0)
+        snd1.play(volume=0.3)
+        time.sleep(8.0)
+    elif totalValue > 0:
+        snd1.play(volume=0.7)
+        time.sleep(5)
+    time.sleep(1)
     print "LOL"
     snd2.play(volume=0.7)
     time.sleep(20)
