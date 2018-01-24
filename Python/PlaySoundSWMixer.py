@@ -1,6 +1,8 @@
 import swmixer
 import time
+import serial
 
+arduino = serial.Serial('COM5', 9600)
 swmixer.init(samplerate=44100, chunksize=1024, stereo=True)
 swmixer.start()
 
@@ -12,7 +14,6 @@ snd3.play(loops=-1, volume=0.3)
 while True:
     totalValue = 0
     for i in range(0, 15):
-        #data = arduino.readline()[:-2]
         value = arduino.readline()[:-2]
         if value:
             print value
