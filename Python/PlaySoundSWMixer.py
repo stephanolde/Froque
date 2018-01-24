@@ -32,6 +32,7 @@ while True:
             count = 0
             sndMain.play(loops=-1, volume=0.3)
 
+    print "ValueArray: ", valueArray, "Can Play: ", canPlay, "Total Value: ", totalValue
     # Sound is allowed, run the scripts from here
     if canPlay == 1:
         if totalValue > 2:

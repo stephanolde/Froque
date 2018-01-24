@@ -11,7 +11,7 @@ byte num_Sensors = 15; // Amount of used sensors in the installation
 struct Sensor { // Variables which differ for each individual sensor and change throughout the loops.
   int echoTime; // Time between pulse and the echo
   int distance; // Distance of the object in front of the sensor, for easy usability
-  long lastSeen; // The internal clocktime at which the sensor registered something the last time
+  long lastSeen = 0; // The internal clocktime at which the sensor registered something the last time
   long StateTime;
   int State = 0;
 } Sensors[15];  //
@@ -44,10 +44,7 @@ NewPing sonar[15] {                    // Declaring the sensors.
   NewPing(42,   43,  max_Distance)
 };
 
-
-
 void setup() {
-
   Serial.begin(19200);
 
   for (int i = 0; i < 15; i++) { // Declare the communication pins for each sensor.
@@ -58,9 +55,7 @@ void setup() {
 }
 
 void loop() {
-
   measure(); // The function which measures the distance for each sensor and sends a signal to the other Arduino when neccesary.
-
 }
 
 void measure() {
@@ -73,35 +68,35 @@ void measure() {
 
     if (Sensors[i].distance >= minDistance && Sensors[i].distance <= maxDistance) { // Filter values outside of the predetermined range.
 
-      if (Sensors[i].State == 1 && millis()-Sensors[i].StateTime >= 2000) {
+      if (Sensors[i].State == 1 && millis() - Sensors[i].StateTime >= 2000) {
         Sensors[i].StateTime = millis();
         Sensors[i].State = 2;
       }
 
       if (Sensors[i].State == 0 && Sensors[i].StateTime != 0) {
-        Sensors[i].State = 1;
         Sensors[i].StateTime = millis();
+        Sensors[i].State = 1;
       }
 
 
       Sensors[i].lastSeen = millis();                                               // Record the internal clocktime a sensor got a valid echo.
       digitalWrite(mapping[i] + 2, LOW);                                                     // Send a signal to the other Arduino.
-                                                    // Sends a sensor index and a state to the PI
+      // Sends a sensor index and a state to the PI
     }
 
     else {
       if (millis() - Sensors[i].lastSeen >= pushTime) {                             // Remove the active signal when it has been pushed for a predetermined time.
         digitalWrite(mapping[i] + 2, HIGH);                                                  // Gives the other Arduino the time to loop and register the value.
-                                                   // Sends a sensor index and a state to the PI
+        // Sends a sensor index and a state to the PI
       }
     }
-if(millis() - Sensors[i].lastSeen >= 2000){
-  Sensors[i].State--;
-  Sensors[i].StateTime = millis();
-  if (Sensors[i].State <= 0){
-    Sensors[i].StateTime = 0;
+    if (millis() - Sensors[i].lastSeen >= 2000 && Sensors[i].lastSeen != 0) {
+      Sensors[i].State--;
+      Sensors[i].StateTime = millis();
+      if (Sensors[i].State <= 0) {
+        Sensors[i].StateTime = 0;
+      }
     }
-  }
-  Serial.println(Sensors[i].State);
+    Serial.println(Sensors[i].State);
   }
 }
