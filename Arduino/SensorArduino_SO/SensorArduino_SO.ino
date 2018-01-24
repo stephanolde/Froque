@@ -11,25 +11,19 @@ byte num_Sensors = 15; // Amount of used sensors in the installation
 struct Sensor { // Variables which differ for each individual sensor and change throughout the loops.
   int echoTime; // Time between pulse and the echo
   int distance; // Distance of the object in front of the sensor, for easy usability
-  int lastSeen; // The internal clocktime at which the sensor registered something the last time
+  long lastSeen; // The internal clocktime at which the sensor registered something the last time
+  long StateTime;
+  int State = 0;
 } Sensors[15];  //
 
-bool state[15];
-long lastSend = 0 ;
-long sendTimeout = 50;
 
-int medianMeasuraments = 3; // Amount of measurements per sensor, to remove outliers.
+int medianMeasuraments = 2; // Amount of measurements per sensor, to remove outliers.
 int minDistance = 1;        // Minimum distance threshold for the sensor to react.
-int maxDistance = 45;       // Maximum distance threshold for the sensor to react.
-int sensorDelay = 15;
+int maxDistance = 40;       // Maximum distance threshold for the sensor to react.
+int pushTime = 500;
+int sensorDelay = 0;
 
-const int mapRows = 3;
-const int maping[mapRows][15] = {
-  {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10,  11,  12,  13,  14},
-  {  2,  2,  1,  4,  6,  7,  4,  5,  5, 10, -1,  12,  10,  14,  13},
-  { -1, -1, -1, -1, -1,  8, -1,  8,  7, -1, -1,  13,  13,  -1,  11}
-};
-const int mapingPins[15] = {12, 11, 0, 13, 10, 8, 7 , 14, 9, 1, 5, 6, 2, 3, 4};
+const int mapping[15] = {12, 11, 0, 13, 10, 8, 7 , 14, 9, 1, 5, 6, 2, 3, 4};
 #define max_Distance 150     // Maximum distance the sensor can detect within the NewPing library.
 
 NewPing sonar[15] {                    // Declaring the sensors.
@@ -71,8 +65,6 @@ void loop() {
 
 void measure() {
 
-
-
   for (int i = 0; i < num_Sensors; i++) {            // Loop through sensor 1 to 15.
     delay(sensorDelay);                             // Wait 50ms between pings (about 20 pings/sec). 29ms should be the shortest delay between pings.
 
@@ -80,39 +72,36 @@ void measure() {
     Sensors[i].distance = sonar[i].convert_cm(Sensors[i].echoTime);   // Convert the echotime to an usable distance.
 
     if (Sensors[i].distance >= minDistance && Sensors[i].distance <= maxDistance) { // Filter values outside of the predetermined range.
+
+      if (Sensors[i].State == 1 && millis()-Sensors[i].StateTime >= 2000) {
+        Sensors[i].StateTime = millis();
+        Sensors[i].State = 2;
+      }
+
+      if (Sensors[i].State == 0 && Sensors[i].StateTime != 0) {
+        Sensors[i].State = 1;
+        Sensors[i].StateTime = millis();
+      }
+
+
       Sensors[i].lastSeen = millis();                                               // Record the internal clocktime a sensor got a valid echo.
-      state[i] = true;
-      Serial.print(i);
-      Serial.print(';');
-      Serial.println(1);                                              // Sends a sensor index and a state to the PI
+      digitalWrite(mapping[i] + 2, LOW);                                                     // Send a signal to the other Arduino.
+                                                    // Sends a sensor index and a state to the PI
     }
 
     else {
-      state[i] = false;
-      Serial.print(i);
-      Serial.print(';');
-      Serial.println(0);                                             // Sends a sensor index and a state to the PI
-
+      if (millis() - Sensors[i].lastSeen >= pushTime) {                             // Remove the active signal when it has been pushed for a predetermined time.
+        digitalWrite(mapping[i] + 2, HIGH);                                                  // Gives the other Arduino the time to loop and register the value.
+                                                   // Sends a sensor index and a state to the PI
+      }
+    }
+if(millis() - Sensors[i].lastSeen >= 2000){
+  Sensors[i].State--;
+  Sensors[i].StateTime = millis();
+  if (Sensors[i].State <= 0){
+    Sensors[i].StateTime = 0;
     }
   }
-
-  if (millis() - lastSend > sendTimeout) {
-    lastSend = millis();
-    for (int i = 0; i < num_Sensors; i++) {
-      digitalWrite(i + 2, HIGH);
-    }
-
-    for (int i = 0; i < num_Sensors; i++) {
-      if (state[i] == true) {
-        for (int j = 0; j < mapRows; j++) {
-          if (maping[j][i] == -1){
-            break;
-          }
-          digitalWrite(mapingPins[maping[j][i]]+2, LOW);
-        }
-        
-      }
-      
-    }
+  Serial.println(Sensors[i].State);
   }
 }
