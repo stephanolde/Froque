@@ -21,7 +21,7 @@ long lastSend = 0 ;
 
 int medianMeasuraments = 2; // Amount of measurements per sensor, to remove outliers.
 int minDistance = 1;        // Minimum distance threshold for the sensor to react.
-int maxDistance = 40;       // Maximum distance threshold for the sensor to react.
+int maxDistance = 30;       // Maximum distance threshold for the sensor to react.
 int pushTime = 500;
 int sensorDelay = 0;
 
